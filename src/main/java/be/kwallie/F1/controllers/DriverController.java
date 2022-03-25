@@ -4,9 +4,7 @@ import be.kwallie.F1.models.response.DriverResponse;
 import be.kwallie.F1.services.DriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -16,10 +14,20 @@ import java.util.List;
 @RequestMapping("/api")
 public class DriverController {
 
-    private DriverService driverService;
+    private final DriverService driverService;
 
     @GetMapping("/drivers")
     public ResponseEntity<List<DriverResponse>> getAllDrivers() {
         return ResponseEntity.ok(driverService.getAllDrivers());
+    }
+
+    @GetMapping("/ranking")
+    public ResponseEntity<List<DriverResponse>> getTopThree() {
+        return ResponseEntity.ok(driverService.getTopThree());
+    }
+
+    @GetMapping("/driver/{id}")
+    public ResponseEntity<DriverResponse> getDriver(@PathVariable Long id){
+        return ResponseEntity.ok(driverService.getDriver(id));
     }
 }

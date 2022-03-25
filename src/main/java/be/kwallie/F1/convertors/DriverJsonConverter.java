@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class DriverJsonConverter {
-
     public DriverResponse driverResponseConvert(Driver driver){
         return DriverResponse.builder()
                 .id(driver.getId())
