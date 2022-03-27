@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface DriverRepository extends JpaRepository<Driver, Long> {
-    @Query(value = "select * from Driver order by points desc limit 3", nativeQuery = true)
+    @Query(value = "select * from driver order by points desc limit 3", nativeQuery = true)
     List<Driver> getTopThree();
 }
