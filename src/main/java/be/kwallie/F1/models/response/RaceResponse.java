@@ -4,10 +4,7 @@ import lombok.*;
 
 import java.util.Date;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
 public class RaceResponse {
     private Long id;
