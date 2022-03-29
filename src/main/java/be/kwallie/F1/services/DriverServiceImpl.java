@@ -26,13 +26,6 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    public List<DriverResponse> getTopThree() {
-        return driverRepository.getTopThree().stream()
-                .map(driverJsonConverter::driverResponseConvert)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public DriverResponse getDriver(Long id){
         Driver driver = driverRepository
                 .findById(id)

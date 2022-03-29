@@ -19,6 +19,7 @@ public class DriverJsonConverter {
                 .birthday(driver.getBirthday())
                 .picture(driver.getPicture())
                 .country(driver.getCountry())
+                .countryCode(driver.getCountryCode())
                 .wins(driver.getWins())
                 .points(driver.getPoints())
                 .penaltyPoints(driver.getPenaltyPoints())

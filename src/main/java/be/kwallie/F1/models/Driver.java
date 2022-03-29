@@ -46,6 +46,9 @@ public class Driver {
     @Column(name = "COUNTRY", nullable = false)
     private String country;
 
+    @Column(name = "COUNTRYCODE", nullable = false)
+    private String countryCode;
+
     @Column(name = "WINS", nullable = false)
     private String wins;
 
