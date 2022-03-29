@@ -18,6 +18,7 @@ public class DriverResponse {
     private Date birthday;
     private String picture;
     private String country;
+    private String countryCode;
     private String wins;
     private double points;
     private int penaltyPoints;

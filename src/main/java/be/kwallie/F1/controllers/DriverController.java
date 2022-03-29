@@ -13,17 +13,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class DriverController {
-
     private final DriverService driverService;
 
     @GetMapping("/drivers")
     public ResponseEntity<List<DriverResponse>> getAllDrivers() {
         return ResponseEntity.ok(driverService.getAllDrivers());
-    }
-
-    @GetMapping("/ranking")
-    public ResponseEntity<List<DriverResponse>> getTopThree() {
-        return ResponseEntity.ok(driverService.getTopThree());
     }
 
     @GetMapping("/driver/{id}")
