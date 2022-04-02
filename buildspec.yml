@@ -1,9 +1,16 @@
+version: 0.2
 phases:
+  pre_build:
+    commands:
+      - echo "Entered the pre-build phase"
+  build:
+    commands:
+      - echo "Entered build phase"
+      - mvn clean prepare-package war:exploded
   post_build:
     commands:
-      - mvn package -DskipTests
-      - mv target/F1_API ./
+      - echo "Entered the post-build phase"
+      - mv target/deploy ./
 artifacts:
   files:
-    - F1_API/target/*.jar
- discard-paths: yes
+    - deploy/**/*
