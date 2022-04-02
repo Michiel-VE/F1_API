@@ -1,6 +1,7 @@
 package be.kwallie.F1.controllers;
 
 import be.kwallie.F1.models.response.TeamResponse;
+import be.kwallie.F1.models.response.TeamWithDriverResponse;
 import be.kwallie.F1.services.TeamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,8 @@ public class TeamController {
     private final TeamService teamService;
 
     @GetMapping("/teams")
-    public ResponseEntity<List<TeamResponse>> getAllTeams() {
-        return ResponseEntity.ok(teamService.getAllTeams());
+    public ResponseEntity<List<TeamWithDriverResponse>> getAllTeamsWithDrivers() {
+        return ResponseEntity.ok(teamService.getAllTeamsWithDrivers());
     }
 
     @GetMapping("/team/{id}")
