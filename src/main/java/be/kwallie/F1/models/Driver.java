@@ -21,6 +21,9 @@ public class Driver {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected long id;
 
+    @ManyToOne
+    private Team team;
+
     @NotBlank
     @Column(name = "FIRSTNAME", nullable = false)
     private String firstName;

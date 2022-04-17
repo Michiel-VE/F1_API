@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
@@ -21,10 +22,9 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public List<TeamWithDriverResponse> getAllTeamsWithDrivers() {
-        return null;
-//                teamRepository.getTeamsWithDrivers().stream()
-//                .map(teamWithDriverJsonConverter::teamWithDriverResponseConvert)
-//                .collect(Collectors.toList());
+        return teamRepository.getTeamsWithDrivers().stream()
+                .map(teamWithDriverJsonConverter::teamWithDriverResponseConvert)
+                .collect(Collectors.toList());
     }
 
     @Override

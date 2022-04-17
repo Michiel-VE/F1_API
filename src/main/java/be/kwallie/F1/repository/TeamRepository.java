@@ -10,6 +10,5 @@ import java.util.List;
 
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
-    @Query(value = "select * from team t join driver d on t.id = d.team_id", nativeQuery = true)
-    List<TeamWithDriverResponse> getTeamsWithDrivers();
+    List<TeamWithDriverResponse> getTeamsByDrivers();
 }
