@@ -18,6 +18,7 @@ public class TeamWithDriverJsonConverter {
                 .drivers(team.getDrivers().stream().map(driverJsonConverter::driverResponseConvert).limit(2).collect(Collectors.toList()))
                 .teamId(team.getId())
                 .origin(team.getOrigin())
+                .picture(team.getPicture())
                 .name(team.getName())
                 .build();
     }

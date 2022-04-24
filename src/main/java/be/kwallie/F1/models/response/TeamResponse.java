@@ -9,4 +9,5 @@ public class TeamResponse {
     private Long id;
     private String name;
     private  String origin;
+    private  String picture;
 }

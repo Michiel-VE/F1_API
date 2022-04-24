@@ -1,7 +1,10 @@
 package be.kwallie.F1.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import javax.persistence.*;
@@ -31,4 +34,7 @@ public class Team {
 
     @Column(name = "ORIGIN", nullable = false)
     private String origin;
+
+    @Column(name = "PICTURE", nullable = false)
+    private String picture;
 }
