@@ -20,7 +20,7 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     public List<DriverResponse> getAllDrivers() {
-        return driverRepository.findAllByOrderByPointsDesc().stream()
+        return driverRepository.findAllByOrderByPointsDescLastNameAsc().stream()
                 .map(driverJsonConverter::driverResponseConvert)
                 .collect(Collectors.toList());
     }

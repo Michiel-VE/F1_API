@@ -22,7 +22,8 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public List<TeamWithDriverResponse> getAllTeamsWithDrivers() {
-        return teamRepository.getTeamsWithDrivers().stream()
+        return teamRepository.getTeamsByDrivers()
+                .stream()
                 .map(teamWithDriverJsonConverter::teamWithDriverResponseConvert)
                 .collect(Collectors.toList());
     }

@@ -1,17 +1,18 @@
 package be.kwallie.F1.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 @SuperBuilder
 @Entity
 public class Team {
@@ -19,8 +20,10 @@ public class Team {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected long id;
 
-    @OneToMany(mappedBy = "team")
-    private List<Driver> drivers;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "team_id")
+    @JsonManagedReference
+    private List<Driver> drivers = new ArrayList<>();
 
     @NotBlank
     @Column(name = "NAME", nullable = false)
