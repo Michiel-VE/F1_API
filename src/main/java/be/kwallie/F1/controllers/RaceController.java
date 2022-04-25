@@ -20,5 +20,10 @@ public class RaceController {
     public ResponseEntity<List<RaceResponse>> getAllRaces() {
         return ResponseEntity.ok(raceService.getAllRaces());
     }
+
+    @GetMapping("/passedRaces")
+    public ResponseEntity<Integer> getPassedRaces(){
+        return ResponseEntity.ok(raceService.getPassedRaces());
+    }
 }
 

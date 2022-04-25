@@ -21,4 +21,9 @@ public class RaceServiceImpl implements RaceService {
                 .map(raceJsonConverter::raceResponseConvert)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public int getPassedRaces(){
+        return raceRepository.countOfPassedRaces();
+    }
 }
