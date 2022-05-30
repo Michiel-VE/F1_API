@@ -1,6 +1,7 @@
 package be.kwallie.F1.controllers;
 
 import be.kwallie.F1.models.response.DriverResponse;
+import be.kwallie.F1.models.response.DriverWithTeamResponse;
 import be.kwallie.F1.services.DriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,5 +24,10 @@ public class DriverController {
     @GetMapping("/driver/{id}")
     public ResponseEntity<DriverResponse> getDriver(@PathVariable Long id){
         return ResponseEntity.ok(driverService.getDriver(id));
+    }
+
+    @GetMapping("/driver")
+    public ResponseEntity<DriverWithTeamResponse> getDriverWithTeam(@RequestParam(name = "driverNumber") Long driverId){
+        return ResponseEntity.ok(driverService.getDriverWithTeam(driverId));
     }
 }

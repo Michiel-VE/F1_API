@@ -2,8 +2,10 @@ package be.kwallie.F1.services;
 
 
 import be.kwallie.F1.convertors.DriverJsonConverter;
+import be.kwallie.F1.convertors.DriverWithTeamJsonConverter;
 import be.kwallie.F1.models.Driver;
 import be.kwallie.F1.models.response.DriverResponse;
+import be.kwallie.F1.models.response.DriverWithTeamResponse;
 import be.kwallie.F1.repository.DriverRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 public class DriverServiceImpl implements DriverService {
     private final DriverRepository driverRepository;
     private final DriverJsonConverter driverJsonConverter;
+    private final DriverWithTeamJsonConverter driverWithTeamJsonConverter;
 
     @Override
     public List<DriverResponse> getAllDrivers() {
@@ -32,6 +35,14 @@ public class DriverServiceImpl implements DriverService {
                 .orElseThrow(() -> new EntityNotFoundException("Driver not found with id: " + id));
 
         return driverJsonConverter.driverResponseConvert(driver);
+    }
+    @Override
+    public DriverWithTeamResponse getDriverWithTeam(Long id){
+        Driver driver = driverRepository
+                .findDriverAndTeam(id)
+                .orElseThrow(() -> new EntityNotFoundException("Team not found with Driver id: " + id));
+
+        return driverWithTeamJsonConverter.driverWithTeamResponseConvert(driver);
     }
 
 }
