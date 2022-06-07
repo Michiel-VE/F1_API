@@ -17,7 +17,7 @@ public class RaceServiceImpl implements RaceService {
 
     @Override
     public List<RaceResponse> getAllRaces() {
-        return raceRepository.findAll().stream()
+        return raceRepository.findAllByOrderByDateAsc().stream()
                 .map(raceJsonConverter::raceResponseConvert)
                 .collect(Collectors.toList());
     }
@@ -25,5 +25,13 @@ public class RaceServiceImpl implements RaceService {
     @Override
     public int getPassedRaces(){
         return raceRepository.countOfPassedRaces();
+    }
+
+
+    @Override
+    public List<RaceResponse> getCalender(){
+        return raceRepository.getCalender().stream()
+                .map(raceJsonConverter::raceResponseConvert)
+                .collect(Collectors.toList());
     }
 }

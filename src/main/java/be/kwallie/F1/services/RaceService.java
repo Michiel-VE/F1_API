@@ -7,4 +7,5 @@ import java.util.List;
 public interface RaceService {
     List<RaceResponse> getAllRaces();
     int getPassedRaces();
+    List<RaceResponse> getCalender();
 }

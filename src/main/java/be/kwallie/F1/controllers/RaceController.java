@@ -25,5 +25,10 @@ public class RaceController {
     public ResponseEntity<Integer> getPassedRaces(){
         return ResponseEntity.ok(raceService.getPassedRaces());
     }
+
+    @GetMapping("/calender")
+    public ResponseEntity<List<RaceResponse>> getCalender(){
+        return ResponseEntity.ok(raceService.getCalender());
+    }
 }
 
