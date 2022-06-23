@@ -4,6 +4,7 @@ package be.kwallie.F1.services;
 import be.kwallie.F1.convertors.DriverJsonConverter;
 import be.kwallie.F1.convertors.DriverWithTeamJsonConverter;
 import be.kwallie.F1.models.Driver;
+import be.kwallie.F1.models.request.DriverRequest;
 import be.kwallie.F1.models.response.DriverResponse;
 import be.kwallie.F1.models.response.DriverWithTeamResponse;
 import be.kwallie.F1.repository.DriverRepository;
@@ -43,6 +44,14 @@ public class DriverServiceImpl implements DriverService {
                 .orElseThrow(() -> new EntityNotFoundException("Team not found with Driver id: " + id));
 
         return driverWithTeamJsonConverter.driverWithTeamResponseConvert(driver);
+    }
+
+    @Override
+    public DriverResponse editDriver(DriverRequest driverRequest, Long id){
+        Driver updateDriver = driverRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Driver not found"));
+        Driver driverUpdated = driverJsonConverter.driverModelConvert(updateDriver, driverRequest);
+        driverRepository.save(driverUpdated);
+        return driverJsonConverter.driverResponseConvert(driverUpdated);
     }
 
 }

@@ -1,5 +1,6 @@
 package be.kwallie.F1.services;
 
+import be.kwallie.F1.models.request.DriverRequest;
 import be.kwallie.F1.models.response.DriverResponse;
 import be.kwallie.F1.models.response.DriverWithTeamResponse;
 
@@ -9,4 +10,5 @@ public interface DriverService {
     List<DriverResponse> getAllDrivers();
     DriverResponse getDriver(Long id);
     DriverWithTeamResponse getDriverWithTeam(Long id);
+    DriverResponse editDriver(DriverRequest driver, Long id);
 }
