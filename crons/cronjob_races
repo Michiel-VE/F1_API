@@ -1,0 +1,1 @@
+*/5 * * * * root java -jar /app/f1-api.jar > /app/cron_races.log 2>&1

@@ -1,0 +1,12 @@
+package be.michielve.f1_api.models.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class SuccessResponse {
+    private String message;
+    private int status;
+    private String timestamp;
+}
