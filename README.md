@@ -48,6 +48,6 @@ While Swagger is available locally for development purposes, it is not included 
 
 ### Example endpoints:
 
-- `GET /api/drivers`: Retrieve current Formula 1 standings.
-- `GET /api/team`: Retrieve list of teams in the current season.
-- `GET /api/races`: Retrieve information on upcoming and past races.
+- `GET /api/v1/drivers`: Retrieve current Formula 1 standings.
+- `GET /api/v1/team`: Retrieve list of teams in the current season.
+- `GET /api/v1/races`: Retrieve information on upcoming and past races.
