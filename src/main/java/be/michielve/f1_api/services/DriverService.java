@@ -12,11 +12,13 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Year;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @RequiredArgsConstructor
 @Service
@@ -30,7 +32,8 @@ public class DriverService {
 
     public List<DriverWithSeasonsResponse> getAllDrivers() {
         logger.info("Attempting to retrieve all drivers with their teams and seasons.");
-        List<DriverWithSeasonsResponse> drivers = driverRepository.findAllWithTeamsAndSeasons(String.valueOf(Year.now().getValue())).stream()
+        List<DriverWithSeasonsResponse> drivers = driverRepository
+                .findAllWithTeamsAndSeasons(String.valueOf(Year.now().getValue())).stream()
                 .map(driverConverter::driverResponseWithSeasonsConvert)
                 .collect(Collectors.toList());
         logger.info("Successfully retrieved {} drivers.", drivers.size());
@@ -57,12 +60,17 @@ public class DriverService {
                 });
     }
 
+    @Transactional(readOnly = true)
     public List<DriverCareerHistoryResponse> getDriverCareerHistory(String driverName) {
         logger.info("Attempting to find career history for driver: {}", driverName);
 
         return driverRepository
                 .findByLastnameIgnoreCase(driverName)
                 .map(driver -> driver.getDriverTeamSeasons().stream()
+                        .sorted(Comparator.comparing(
+                                (teamSeason) -> teamSeason.getSeason() != null ? teamSeason.getSeason().getSeasonName()
+                                        : "",
+                                Comparator.reverseOrder()))
                         .map(teamSeason -> {
                             String seasonName = Optional.ofNullable(teamSeason.getSeason())
                                     .map(Season::getSeasonName)
@@ -72,15 +80,16 @@ public class DriverService {
                                     .map(Team::getName)
                                     .orElse("Unknown Team");
 
-                            String points = Optional.of(teamSeason.getPoints())
+                            String points = Optional.ofNullable(teamSeason.getPoints())
                                     .map(Object::toString)
                                     .orElse("N/A");
 
-                            int position = driverTeamSeasonRepository.findDriverPositionByLastName(driverName);
+                            Integer position = driverTeamSeasonRepository
+                                    .findDriverPositionByLastNameAndSeason(driverName, seasonName);
 
+                            String positionStr = (position != null) ? String.valueOf(position) : "N/A";
 
-
-                            return new DriverCareerHistoryResponse(seasonName, teamName, String.valueOf(position), points);
+                            return new DriverCareerHistoryResponse(seasonName, teamName, positionStr, points);
                         })
                         .collect(Collectors.toList()))
                 .orElseThrow(() -> {
