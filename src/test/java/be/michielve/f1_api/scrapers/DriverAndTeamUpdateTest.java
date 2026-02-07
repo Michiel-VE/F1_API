@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,17 +27,18 @@ public class DriverAndTeamUpdateTest {
     @Autowired
     private TeamRepository teamRepository;
 
+    String year = "2025";
+
     @BeforeAll
     static void setVars() {
         DotenvInitializer.init();
     }
 
-
     @Test
     public void testDriverUpdate() {
         f1Scheduler.updateDriverAndTeam();
 
-        List<Driver> drivers = driverRepository.findAllBySeasonName(String.valueOf(LocalDate.now().getYear()));
+        List<Driver> drivers = driverRepository.findAllBySeasonName(year);
 
         assertFalse(drivers.isEmpty(), "Drivers should be fetched and saved to the database");
         assertTrue(drivers.size() > 10, "There should be more than 10 races in a season");
@@ -54,10 +54,11 @@ public class DriverAndTeamUpdateTest {
     public void testTeamUpdate() {
         f1Scheduler.updateDriverAndTeam();
 
-        List<Team> teams = teamRepository.findAllTeamsBySeasonName(String.valueOf(LocalDate.now().getYear()));
+        List<Team> teams = teamRepository.findAllTeamsBySeasonName(year);
 
         assertFalse(teams.isEmpty(), "Teams should be fetched and saved to the database");
-        assertTrue(teams.size() >= 10 && teams.size() <= 12, "The number of teams should be between 10 and 12, inclusive.");
+        assertTrue(teams.size() >= 10 && teams.size() <= 12,
+                "The number of teams should be between 10 and 12, inclusive.");
         assertNotNull(teams.get(0).getName(), "Name name should not be null");
         assertNotNull(teams.get(5).getCountry(), "Country name should not be null");
         assertNotNull(teams.get(4).getShortName(), "Shortname name should not be null");

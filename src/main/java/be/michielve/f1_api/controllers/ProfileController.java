@@ -3,11 +3,6 @@ package be.michielve.f1_api.controllers;
 import be.michielve.f1_api.models.User;
 import be.michielve.f1_api.models.response.ErrorResponse;
 import be.michielve.f1_api.services.UserService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,21 +20,10 @@ import java.time.format.DateTimeFormatter;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@Tag(name = "User Profile", description = "Endpoints related to the logged-in user profile")
 public class ProfileController {
 
     private final UserService userService;
 
-    @Operation(
-            summary = "Get profile of the authenticated user",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved user profile",
-                            content = @Content(schema = @Schema(implementation = User.class))),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized: Authentication required or invalid token",
-                            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error: Authenticated user not found in database or email extraction failed")
-            }
-    )
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(Authentication authentication) {
 

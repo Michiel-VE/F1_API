@@ -40,14 +40,45 @@ Ensure the `.env` file contains all necessary configuration variables, such as d
 **Production Environment**:  
 AWS Secrets Manager is used to securely store and access configuration values for the production environment.
 
-## Endpoints
+## Running Instructions
 
-All endpoints are secured and require authentication via JWT or Google OAuth. 
+### Local Development
+To run the Spring Boot application locally:
+```powershell
+./gradlew bootRun
+```
+
+Build for Local Testing
+To create a standard Spring Boot JAR (for local testing only):
+
+```PowerShell
+./gradlew bootJar
+Output: build/libs/f1_api-local.jar
+```
+
+Build for AWS Lambda
+To create the "flat" Shadow JAR required for deployment (removes BOOT-INF structure):
+
+```PowerShell
+./gradlew clean shadowJar
+Output: build/libs/f1_api.jar
+```
+
+Run the Shadow JAR Locally
+To verify the deployment JAR on your machine:
+
+```PowerShell
+java -jar build/libs/f1_api.jar
+```
+
+## Endpoints
+All endpoints are secured and require authentication via JWT or Google OAuth.
 
 While Swagger is available locally for development purposes, it is not included in the production environment.
 
-### Example endpoints:
+Example endpoints:
+- GET /api/v1/drivers: Retrieve current Formula 1 standings.
 
-- `GET /api/v1/drivers`: Retrieve current Formula 1 standings.
-- `GET /api/v1/team`: Retrieve list of teams in the current season.
-- `GET /api/v1/races`: Retrieve information on upcoming and past races.
+- GET /api/v1/team: Retrieve list of teams in the current season.
+
+- GET /api/v1/races: Retrieve information on upcoming and past races.

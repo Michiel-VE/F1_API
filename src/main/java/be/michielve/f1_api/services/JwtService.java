@@ -21,7 +21,7 @@ public class JwtService {
     @Value("${jwt.secret.key}")
     private String secretKey;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:3600000}")
     private long expiration;
 
     public String generateToken(String email) {

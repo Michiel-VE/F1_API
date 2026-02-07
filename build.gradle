@@ -1,0 +1,92 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'maven-publish'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+group = 'be.michielve'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // --- Spring Boot Starters ---
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+    // --- Database & Persistence ---
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core:11.2.0'
+    implementation 'org.flywaydb:flyway-database-postgresql:11.2.0'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.9.0'
+    // Changed to implementation so it is bundled correctly in the Shadow JAR
+    implementation 'org.postgresql:postgresql:42.7.5' 
+
+    // --- AWS & Lambda ---
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.11.3'
+    implementation 'com.amazonaws.serverless:aws-serverless-java-container-springboot3:2.1.5'
+    
+    // Updated to AWS SDK v2 (Removes deprecation warnings and matches DotenvInitializer)
+    implementation platform('software.amazon.awssdk:bom:2.30.13')
+    implementation 'software.amazon.awssdk:secretsmanager'
+
+    // --- Security & JWT ---
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // --- Utilities & Scraping ---
+    implementation 'org.jsoup:jsoup:1.18.3'
+    implementation 'org.json:json:20240303'
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
+    implementation 'io.github.cdimascio:dotenv-java:3.1.0'
+
+    // --- Annotation Processing & Testing ---
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+// Explicitly define main class for Spring tasks
+springBoot {
+    mainClass = 'be.michielve.f1_api.F1ApiApplication'
+}
+
+// Enabled for local development/IDE runs
+bootJar {
+    enabled = true
+    archiveClassifier = 'local'
+    archiveFileName = 'f1_api-local.jar'
+}
+
+// Used for AWS Lambda deployment
+shadowJar {
+    archiveFileName = 'f1_api.jar'
+    
+    mergeServiceFiles()
+
+    append 'META-INF/spring.handlers'
+    append 'META-INF/spring.schemas'
+    append 'META-INF/spring.tooling'
+    append 'META-INF/spring.factories'
+
+    append 'META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports'
+    append 'META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports'
+    // Ensures JDBC drivers are merged correctly
+    append 'META-INF/services/java.sql.Driver'
+}
+
+tasks.named('assemble') {
+    dependsOn shadowJar
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
