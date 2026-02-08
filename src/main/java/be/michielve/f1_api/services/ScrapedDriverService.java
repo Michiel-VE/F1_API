@@ -7,6 +7,7 @@ import be.michielve.f1_api.repositories.DriverRepository;
 import be.michielve.f1_api.repositories.SeasonRepository;
 import be.michielve.f1_api.repositories.TeamRepository;
 import be.michielve.f1_api.utils.Helpers;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -139,6 +140,7 @@ public class ScrapedDriverService {
         return drivers;
     }
 
+    @Transactional
     public void updateDriversFromScraper() {
         List<Driver> scrapedDrivers = scrapeF1Drivers();
 
