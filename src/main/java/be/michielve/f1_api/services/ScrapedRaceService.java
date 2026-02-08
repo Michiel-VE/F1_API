@@ -13,7 +13,11 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -32,7 +36,6 @@ public class ScrapedRaceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ScrapedRaceService.class);
 
-    // CSS selectors centralized for easier maintenance
     private static final String RACE_CARD_SELECTOR = "div.grid.justify-items-stretch a.group";
     private static final String DESCRIPTION_SELECTOR = "p.typography-module_display-xl-bold__Gyl5W";
     private static final String NAME_SELECTOR = "span.typography-module_body-xs-semibold__Fyfwn";
@@ -43,6 +46,11 @@ public class ScrapedRaceService {
     private final RaceRepository raceRepository;
     private final RaceSeasonRepository raceSeasonRepository;
 
+    // Self-injection via @Lazy allows calling @Transactional methods in the same class correctly
+    @Autowired
+    @Lazy
+    private ScrapedRaceService self;
+
     public List<Race> scrapeF1Race(String year) {
         long startTime = System.nanoTime();
         List<Race> races = new ArrayList<>();
@@ -50,16 +58,12 @@ public class ScrapedRaceService {
 
         try {
             String url = "https://www.formula1.com/en/racing/" + year;
-            logger.debug("Connecting to URL: {}", url);
-
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
                     .timeout(15000)
                     .get();
 
             Elements cards = doc.select(RACE_CARD_SELECTOR);
-            logger.info("Found {} race cards to process.", cards.size());
-
             for (Element card : cards) {
                 try {
                     String description = safeSelectText(card, DESCRIPTION_SELECTOR);
@@ -77,14 +81,12 @@ public class ScrapedRaceService {
                     race.setRaceStartDate(range[0]);
                     race.setRaceEndDate(range[1]);
                     races.add(race);
-                    logger.trace("Successfully parsed race: {} in {}", raceName, description);
                 } catch (Exception e) {
-                    logger.warn("Could not parse race card. Error: {}", e.getMessage());
+                    logger.warn("Could not parse race card for year {}. Error: {}", year, e.getMessage());
                 }
             }
-
         } catch (IOException e) {
-            logger.error("Error loading F1 schedule for year {} via JSoup", year, e);
+            logger.error("Error loading F1 schedule for year {}: {}", year, e.getMessage());
         }
 
         long duration = System.nanoTime() - startTime;
@@ -93,7 +95,6 @@ public class ScrapedRaceService {
 
         return races;
     }
-
 
     public void updateRaceFromScraperForSeason(String year) {
         long startTime = System.nanoTime();
@@ -105,43 +106,17 @@ public class ScrapedRaceService {
             return;
         }
 
-        Season season = seasonRepository.findBySeasonName(year)
-                .orElseThrow(() -> {
-                    logger.error("Season '{}' not found in database.", year);
-                    return new RuntimeException("Season " + year + " not found");
-                });
-        logger.info("Season '{}' found. Processing {} scraped races.", year, scrapedData.size());
+        // Call via 'self' proxy to ensure individual transaction
+        Season season = self.getOrCreateSeason(year);
+
+        logger.info("Processing {} scraped races for season '{}'.", scrapedData.size(), year);
 
         for (Race scrapedRace : scrapedData) {
-            Race race = raceRepository.findByNameAndRaceStartDateAndRaceEndDate(
-                    scrapedRace.getName(),
-                    scrapedRace.getRaceStartDate(),
-                    scrapedRace.getRaceEndDate()
-            ).orElseGet(() -> {
-                logger.info("Race '{}' not found in database. Saving new race.", scrapedRace.getName());
-                Race newRace = new Race();
-                newRace.setName(scrapedRace.getName());
-                newRace.setCountry(scrapedRace.getCountry());
-                newRace.setRaceStartDate(scrapedRace.getRaceStartDate());
-                newRace.setRaceEndDate(scrapedRace.getRaceEndDate());
-                newRace.setUpdated_at(Timestamp.from(Instant.now()));
-                newRace.setCreated_at(Timestamp.from(Instant.now()));
-                return raceRepository.save(newRace);
-            });
-
-            // Check if a RaceSeason entry already exists to prevent duplicates
-            boolean associationExists = raceSeasonRepository.existsByRaceAndSeason(race, season);
-
-            if (!associationExists) {
-                logger.info("Creating new RaceSeason association for race '{}' and season '{}'.", race.getName(), season.getSeasonName());
-                RaceSeason raceSeason = new RaceSeason();
-                raceSeason.setRace(race);
-                raceSeason.setSeason(season);
-                raceSeason.setUpdated_at(Timestamp.from(Instant.now()));
-                raceSeason.setCreated_at(Timestamp.from(Instant.now()));
-                raceSeasonRepository.save(raceSeason);
-            } else {
-                logger.debug("Association for race '{}' and season '{}' already exists. Skipping.", race.getName(), season.getSeasonName());
+            try {
+                // Call via 'self' proxy to ensure individual transaction for each race
+                self.processSingleRace(scrapedRace, season);
+            } catch (Exception e) {
+                logger.error("Failed to process race '{}' for season {}: {}", scrapedRace.getName(), year, e.getMessage());
             }
         }
 
@@ -149,35 +124,64 @@ public class ScrapedRaceService {
         logger.info("Race update for season {} completed. Duration: {}ms", year, TimeUnit.NANOSECONDS.toMillis(duration));
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Season getOrCreateSeason(String year) {
+        return seasonRepository.findBySeasonName(year)
+                .orElseGet(() -> {
+                    logger.info("Season '{}' not found. Creating new season record.", year);
+                    Season newSeason = new Season();
+                    newSeason.setSeasonName(year);
+                    newSeason.setCreated_at(Timestamp.from(Instant.now()));
+                    newSeason.setUpdated_at(Timestamp.from(Instant.now()));
+                    return seasonRepository.save(newSeason);
+                });
+    }
 
-    /**
-     * Safe method to get text from an element by CSS selector within a parent element.
-     * Returns empty string if not found.
-     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processSingleRace(Race scrapedRace, Season season) {
+        // Find race by Name + Dates (The logical business key)
+        Race race = raceRepository.findByNameAndRaceStartDateAndRaceEndDate(
+                scrapedRace.getName(),
+                scrapedRace.getRaceStartDate(),
+                scrapedRace.getRaceEndDate()
+        ).orElseGet(() -> {
+            logger.info("Race '{}' not found. Saving new race record.", scrapedRace.getName());
+            Race newRace = new Race();
+            newRace.setName(scrapedRace.getName());
+            newRace.setCountry(scrapedRace.getCountry());
+            newRace.setRaceStartDate(scrapedRace.getRaceStartDate());
+            newRace.setRaceEndDate(scrapedRace.getRaceEndDate());
+            newRace.setUpdated_at(Timestamp.from(Instant.now()));
+            newRace.setCreated_at(Timestamp.from(Instant.now()));
+            return raceRepository.save(newRace);
+        });
+
+        if (!raceSeasonRepository.existsByRaceAndSeason(race, season)) {
+            logger.info("Linking race '{}' to season '{}'.", race.getName(), season.getSeasonName());
+            RaceSeason raceSeason = new RaceSeason();
+            raceSeason.setRace(race);
+            raceSeason.setSeason(season);
+            raceSeason.setUpdated_at(Timestamp.from(Instant.now()));
+            raceSeason.setCreated_at(Timestamp.from(Instant.now()));
+            raceSeasonRepository.save(raceSeason);
+        }
+    }
+
     private String safeSelectText(Element parent, String cssSelector) {
         try {
             Element element = parent.selectFirst(cssSelector);
             return element != null ? element.text().trim() : "";
         } catch (Exception e) {
-            logger.warn("Element not found or error in selector '{}'.", cssSelector);
             return "";
         }
     }
 
-
-    /**
-     * Parses a date range string like "3-5 Sep" or "3 Sep" into start and end LocalDate objects.
-     * Uses regex to extract day(s) and month, constructs dates with the given year.
-     */
     private int parseMonth(String monthStr) {
-        // Normalize input to uppercase full name for Month enum
         for (Month m : Month.values()) {
             String shortName = m.getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-            if (shortName.equalsIgnoreCase(monthStr)) {
-                return m.getValue(); // 1 for Jan, 2 for Feb, etc.
-            }
+            if (shortName.equalsIgnoreCase(monthStr)) return m.getValue();
         }
-        throw new IllegalArgumentException("Invalid month abbreviation: " + monthStr);
+        throw new IllegalArgumentException("Invalid month: " + monthStr);
     }
 
     private LocalDate[] parseDateRange(String range, String year) {
@@ -188,10 +192,7 @@ public class ScrapedRaceService {
             Matcher matcherCrossMonth = crossMonth.matcher(range);
             Matcher matcherSameMonth = sameMonth.matcher(range);
 
-            int startDay;
-            int endDay;
-            int startMonth;
-            int endMonth;
+            int startDay, endDay, startMonth, endMonth;
 
             if (matcherCrossMonth.find()) {
                 startDay = Integer.parseInt(matcherCrossMonth.group("startDay"));
@@ -204,16 +205,12 @@ public class ScrapedRaceService {
                 startMonth = parseMonth(matcherSameMonth.group("endMonth"));
                 endMonth = startMonth;
             } else {
-                throw new RuntimeException("Date range format not recognized: " + range);
+                throw new IllegalArgumentException("Unknown date format: " + range);
             }
 
             int yearInt = Integer.parseInt(year);
-            LocalDate startDate = LocalDate.of(yearInt, startMonth, startDay);
-            LocalDate endDate = LocalDate.of(yearInt, endMonth, endDay);
-
-            return new LocalDate[]{startDate, endDate};
+            return new LocalDate[]{LocalDate.of(yearInt, startMonth, startDay), LocalDate.of(yearInt, endMonth, endDay)};
         } catch (Exception e) {
-            logger.error("Failed to parse date range: {}", range, e);
             throw new RuntimeException("Invalid date range format: " + range, e);
         }
     }
