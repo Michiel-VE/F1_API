@@ -1,8 +1,6 @@
 package be.michielve.f1_api.services;
 
 import be.michielve.f1_api.models.Team;
-import be.michielve.f1_api.repositories.DriverRepository;
-import be.michielve.f1_api.repositories.SeasonRepository;
 import be.michielve.f1_api.repositories.TeamRepository;
 import be.michielve.f1_api.utils.Helpers;
 import lombok.RequiredArgsConstructor;
