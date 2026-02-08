@@ -13,31 +13,31 @@ import java.util.UUID;
 @Repository
 public interface DriverRepository extends JpaRepository<Driver, UUID> {
 
-    @Query("""
-            SELECT DISTINCT d FROM Driver d
-            LEFT JOIN FETCH d.driverTeamSeasons dts
-            LEFT JOIN FETCH dts.team t
-            LEFT JOIN FETCH dts.season s
-            WHERE s.seasonName = :season
-            ORDER BY dts.points DESC
-            """)
-    List<Driver> findAllWithTeamsAndSeasons(@Param("season") String season);
+        @Query("""
+                        SELECT DISTINCT d FROM Driver d
+                        LEFT JOIN FETCH d.driverTeamSeasons dts
+                        LEFT JOIN FETCH dts.team t
+                        LEFT JOIN FETCH dts.season s
+                        WHERE s.seasonName = :season
+                        ORDER BY dts.points DESC
+                        """)
+        List<Driver> findAllWithTeamsAndSeasons(@Param("season") String season);
 
-    @Query("""
-            SELECT DISTINCT d FROM Driver d
-            LEFT JOIN FETCH d.driverTeamSeasons dts
-            LEFT JOIN FETCH dts.team t
-            LEFT JOIN FETCH dts.season s
-            WHERE s.seasonName = :season
-            ORDER BY dts.points DESC
-            """)
-    List<Driver> findAllBySeasonName(@Param("season") String season);
+        @Query("""
+                        SELECT DISTINCT d FROM Driver d
+                        LEFT JOIN FETCH d.driverTeamSeasons dts
+                        LEFT JOIN FETCH dts.team t
+                        LEFT JOIN FETCH dts.season s
+                        WHERE s.seasonName = :season
+                        ORDER BY dts.points DESC
+                        """)
+        List<Driver> findAllBySeasonName(@Param("season") String season);
 
-    Optional<Driver> findByLastnameIgnoreCase(String lastName);
+        Optional<Driver> findByLastnameIgnoreCase(String lastName);
 
-    Optional<Driver> findByFirstnameIgnoreCase(String firstName);
+        Optional<Driver> findByFirstnameIgnoreCase(String firstName);
 
-    Optional<Driver> findByFirstnameAndLastnameIgnoreCase(String firstName, String lastName);
+        Optional<Driver> findByFirstnameAndLastnameIgnoreCase(String firstName, String lastName);
 
-    Optional<Driver> findByPermanentNumber(Integer permanentNumber);
+        List<Driver> findByPermanentNumber(Integer permanentNumber);
 }

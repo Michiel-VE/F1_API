@@ -39,15 +39,16 @@ public class DriverController {
         }
 
         @GetMapping("driver")
-        public ResponseEntity<DriverResponse> getDriverDetails(
+        public ResponseEntity<List<DriverResponse>> getDriverDetails(
                         @RequestParam("permanentNumber") int permanentNumber) {
-                DriverResponse driver = driverService.getDriverDetails(permanentNumber);
 
-                if (driver == null) {
+                List<DriverResponse> drivers = driverService.getDriverDetails(permanentNumber);
+
+                if (drivers.isEmpty()) {
                         return ResponseEntity.notFound().build();
                 }
 
-                return ResponseEntity.ok(driver);
+                return ResponseEntity.ok(drivers);
         }
 
         @GetMapping("drivers/{name}/career-history")
