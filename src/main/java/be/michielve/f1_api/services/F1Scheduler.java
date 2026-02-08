@@ -13,6 +13,7 @@ public class F1Scheduler  {
     private final ScrapedRaceService scrapedRaceService;
     private final ScrapedDriverService scrapedDriverService;
     private final ScrapedTeamService scrapedTeamService;
+    
     String currentYear = String.valueOf( Year.now().getValue());
 
     public void updateRacesSeason() {
