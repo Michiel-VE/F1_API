@@ -2,7 +2,6 @@ package be.michielve.f1_api.repositories;
 
 
 import be.michielve.f1_api.models.Race;
-import be.michielve.f1_api.models.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

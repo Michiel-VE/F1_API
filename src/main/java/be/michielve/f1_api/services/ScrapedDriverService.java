@@ -1,11 +1,7 @@
 package be.michielve.f1_api.services;
 
 import be.michielve.f1_api.models.Driver;
-import be.michielve.f1_api.models.Season;
-import be.michielve.f1_api.models.Team;
 import be.michielve.f1_api.repositories.DriverRepository;
-import be.michielve.f1_api.repositories.SeasonRepository;
-import be.michielve.f1_api.repositories.TeamRepository;
 import be.michielve.f1_api.utils.Helpers;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -47,8 +43,6 @@ public class ScrapedDriverService {
 
 
     private final DriverRepository driverRepository;
-    private final TeamRepository teamRepository;
-    private final SeasonRepository seasonRepository;
 
     /**
      * Scrapes F1 driver data from the official Formula 1 website.

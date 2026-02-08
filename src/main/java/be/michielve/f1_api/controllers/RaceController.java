@@ -3,7 +3,6 @@ package be.michielve.f1_api.controllers;
 import be.michielve.f1_api.models.response.RaceResponse;
 import be.michielve.f1_api.services.RaceService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

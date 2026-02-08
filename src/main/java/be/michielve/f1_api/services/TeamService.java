@@ -1,7 +1,6 @@
 package be.michielve.f1_api.services;
 
 import be.michielve.f1_api.convertors.TeamConverter;
-import be.michielve.f1_api.models.Team;
 import be.michielve.f1_api.models.response.TeamResponse;
 import be.michielve.f1_api.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
