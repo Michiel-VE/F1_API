@@ -44,7 +44,9 @@ public class AuthService {
         }
 
         User newUser = buildUserFromOAuth(provider, providerId, attributes);
-        userRepository.save(newUser);
+        if (newUser != null) {
+            userRepository.save(newUser);
+        }
 
         return Optional.of(newUser);
     }
@@ -69,11 +71,10 @@ public class AuthService {
     // Method for login: authenticates user and returns JWT token
     public String login(LoginRequest request) {
         try {
-           String  decryptedPassword = decryptPassword(request.getPassword());
+            String decryptedPassword = decryptPassword(request.getPassword());
 
             UserDetails user = (UserDetails) authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), decryptedPassword)
-            ).getPrincipal();
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), decryptedPassword)).getPrincipal();
 
             return jwtService.generateToken(user.getUsername());
         } catch (Exception e) {
@@ -101,7 +102,6 @@ public class AuthService {
         cipher.init(Cipher.DECRYPT_MODE, secretKeyspec);
 
         byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-
 
         return new String(decryptedBytes);
 

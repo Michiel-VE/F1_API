@@ -1,6 +1,5 @@
 package be.michielve.f1_api.controllers;
 
-import be.michielve.f1_api.models.Prediction;
 import be.michielve.f1_api.models.User;
 import be.michielve.f1_api.models.request.CreatePredictionRequest;
 import be.michielve.f1_api.models.response.ErrorResponse;
@@ -46,7 +45,7 @@ public class PredictionController {
                         User user = userService.findByEmail(userEmail)
                                         .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-                        Prediction prediction = predictionService.createPrediction(user.getId(), request);
+                        predictionService.createPrediction(user.getId(), request);
                         return ResponseEntity.status(HttpStatus.CREATED)
                                         .body(Map.of(
                                                         "message", "Prediction Created",

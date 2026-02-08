@@ -18,9 +18,11 @@ public class SystemPropertiesConfig {
 
     @PostConstruct
     public void injectSystemProperties() {
-        // Add System.getProperties() as the highest priority property source
         Properties systemProps = System.getProperties();
-        PropertiesPropertySource pps = new PropertiesPropertySource("systemProps", systemProps);
-        environment.getPropertySources().addFirst(pps);
+        
+        if (systemProps != null) {
+            PropertiesPropertySource pps = new PropertiesPropertySource("systemProps", systemProps);
+            environment.getPropertySources().addFirst(pps);
+        }
     }
 }
