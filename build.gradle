@@ -70,5 +70,7 @@ shadowJar {
 }
 
 tasks.named('test') {
+    systemProperty "wiremock.record", System.getProperty("wiremock.record")
+    
     useJUnitPlatform()
 }

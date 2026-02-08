@@ -1,42 +1,38 @@
 package be.michielve.f1_api.scrapers;
 
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeAll;
+import be.michielve.f1_api.models.Team;
+import be.michielve.f1_api.repositories.TeamRepository;
+import be.michielve.f1_api.services.ScrapedTeamService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
-import be.michielve.f1_api.config.DotenvInitializer;
-import be.michielve.f1_api.models.Team;
-import be.michielve.f1_api.repositories.TeamRepository;
-import be.michielve.f1_api.services.ScrapedTeamService;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @SpringBootTest
 @ActiveProfiles("test")
-public class ScrapedTeamTest {
+@TestPropertySource(properties = "f1.api.base-url=http://localhost:8080")
+public class ScrapedTeamTest extends BaseTestRecording {
+
     @Autowired
     private ScrapedTeamService scrapedTeamService;
+
     @Autowired
     private TeamRepository teamRepository;
 
-    String year = "2025";
-
-    @BeforeAll
-    static void setVars() {
-        DotenvInitializer.init();
-    }
+    private final String year = "2025";
 
     @Test
     public void testTeamUpdate() {
-        scrapedTeamService.updateTeamsFromScraper();
+        runWithRecording("/en/teams.*", () -> {
+            scrapedTeamService.updateTeamsFromScraper();
+        });
 
         List<Team> teams = teamRepository.findAllTeamsBySeasonName(year);
-
         assertFalse(teams.isEmpty(), "Teams should be fetched and saved to the database");
-
     }
 }
