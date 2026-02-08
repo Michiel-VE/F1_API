@@ -49,6 +49,7 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.18.36'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.36'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.wiremock:wiremock-jetty12:3.13.2'
 }
 
 springBoot {

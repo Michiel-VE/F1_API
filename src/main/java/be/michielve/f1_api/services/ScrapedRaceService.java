@@ -14,6 +14,7 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -46,7 +47,9 @@ public class ScrapedRaceService {
     private final RaceRepository raceRepository;
     private final RaceSeasonRepository raceSeasonRepository;
 
-    // Self-injection via @Lazy allows calling @Transactional methods in the same class correctly
+    @Value("${f1.api.base-url:https://www.formula1.com}")
+    private String baseUrl;
+
     @Autowired
     @Lazy
     private ScrapedRaceService self;
@@ -57,7 +60,7 @@ public class ScrapedRaceService {
         logger.info("Starting scrape of F1 races for year {}", year);
 
         try {
-            String url = "https://www.formula1.com/en/racing/" + year;
+            String url = baseUrl + "/en/racing/" + year;
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
                     .timeout(15000)
@@ -139,7 +142,6 @@ public class ScrapedRaceService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSingleRace(Race scrapedRace, Season season) {
-        // Find race by Name + Dates (The logical business key)
         Race race = raceRepository.findByNameAndRaceStartDateAndRaceEndDate(
                 scrapedRace.getName(),
                 scrapedRace.getRaceStartDate(),
