@@ -46,7 +46,8 @@ public class ScrapedTeamService {
         try {
             String url = "https://www.formula1.com/en/teams";
             Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+                    .userAgent(
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
                     .timeout(15000).get();
 
             Elements cards = doc.select(TEAM_CARD_SELECTOR);
@@ -55,8 +56,10 @@ public class ScrapedTeamService {
             for (Element card : cards) {
                 try {
                     String teamPageUrl = "https://www.formula1.com" + card.attr("href");
+                    System.out.println("Processing: " + teamPageUrl);
                     Document teamDoc = Jsoup.connect(teamPageUrl)
-                            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+                            .userAgent(
+                                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
                             .timeout(15000).get();
 
                     String shortName = Helpers.safeSelectText(teamDoc.selectFirst(TEAM_CARD_SHORTNAME));
@@ -95,14 +98,33 @@ public class ScrapedTeamService {
         List<Team> scrapedTeams = scrapeF1Teams();
 
         for (Team scrapedTeam : scrapedTeams) {
-            Optional<Team> existingTeam = teamRepository.findByName(scrapedTeam.getName());
+            // Change the repository call to return a List to avoid the crash
+            List<Team> existingTeams = teamRepository.findAllByShortName(scrapedTeam.getShortName());
 
-            if (existingTeam.isEmpty()) {
+            if (existingTeams.isEmpty()) {
                 teamRepository.save(scrapedTeam);
+                System.out.println("Saved new team: " + scrapedTeam.getName());
             } else {
-                System.out.println("Team already exists: " + scrapedTeam.getName());
-            }
+                // Take the first one if multiple exist (to resolve the 2 results error)
+                Team teamToUpdate = existingTeams.get(0);
 
+                teamToUpdate.setName(scrapedTeam.getName());
+                teamToUpdate.setBase(scrapedTeam.getBase());
+                teamToUpdate.setCountry(scrapedTeam.getCountry());
+                teamToUpdate.setUpdated_at(Timestamp.from(Instant.now()));
+
+                teamRepository.save(teamToUpdate);
+                System.out.println("Updated existing team: " + teamToUpdate.getShortName());
+
+                // Optional: Delete the extra duplicates to clean your DB
+                if (existingTeams.size() > 1) {
+                    for (int i = 1; i < existingTeams.size(); i++) {
+                        teamRepository.delete(existingTeams.get(i));
+                    }
+                    System.out.println("Cleaned up " + (existingTeams.size() - 1) + " duplicates for "
+                            + scrapedTeam.getShortName());
+                }
+            }
         }
     }
 }

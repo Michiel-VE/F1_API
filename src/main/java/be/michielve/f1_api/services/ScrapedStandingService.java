@@ -145,8 +145,13 @@ public class ScrapedStandingService {
                     .orElseThrow(() -> new RuntimeException("Driver not found: " + name));
         });
 
-        Team team = teamRepository.findByShortName(data.getTeam())
-                .orElseThrow(() -> new RuntimeException("Team not found: " + data.getTeam()));
+        // IMPROVED TEAM LOOKUP
+        String scrapedTeamName = data.getTeam(); // e.g., "McLaren Mercedes"
+        Team team = teamRepository.findAll()
+                .stream()
+                .filter(t -> scrapedTeamName.toLowerCase().contains(t.getShortName().toLowerCase()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Team not found for scraped name: " + scrapedTeamName));
 
         driverTeamSeasonRepository.findByDriverAndSeasonAndTeam(driver, season, team)
                 .map(dts -> {
@@ -160,6 +165,8 @@ public class ScrapedStandingService {
                     return dts;
                 })
                 .orElseGet(() -> {
+                    logger.info("Creating new DTS for {} {} at {}.", driver.getFirstname(), driver.getLastname(),
+                            team.getShortName());
                     DriverTeamSeason newDTS = DriverTeamSeason.builder()
                             .driver(driver)
                             .season(season)
@@ -169,19 +176,7 @@ public class ScrapedStandingService {
                             .created_at(Timestamp.from(Instant.now()))
                             .build();
 
-                    logger.info("Creating new DTS for {} {}.", driver.getFirstname(), driver.getLastname());
-
-                    // Logic check for null safety
-                    if (newDTS == null) {
-                        throw new IllegalStateException("Failed to build DriverTeamSeason object");
-                    }
-
-                    try {
-                        DriverTeamSeason saved = driverTeamSeasonRepository.save(newDTS);
-                        return saved;
-                    } catch (Exception e) {
-                        throw new RuntimeException("Could not save DTS: " + e.getMessage(), e);
-                    }
+                    return driverTeamSeasonRepository.save(newDTS);
                 });
     }
 }

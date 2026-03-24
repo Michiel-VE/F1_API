@@ -35,4 +35,13 @@ public class ScrapedTeamTest extends BaseTestRecording {
         List<Team> teams = teamRepository.findAllTeamsBySeasonName(year);
         assertFalse(teams.isEmpty(), "Teams should be fetched and saved to the database");
     }
+
+    @Test
+    void runScraperAndSaveToDb() {
+        System.out.println("--- Starting Manual Scrape Execution ---");
+        
+        scrapedTeamService.updateTeamsFromScraper();
+        
+        System.out.println("--- Scrape Execution Finished ---");
+    }
 }
