@@ -1,7 +1,10 @@
 package be.michielve.f1_api.services;
 
+import be.michielve.f1_api.convertors.DriverTeamSeasonConverter;
 import be.michielve.f1_api.convertors.TeamConverter;
 import be.michielve.f1_api.models.response.TeamResponse;
+import be.michielve.f1_api.models.response.TeamWithPointsResponse;
+import be.michielve.f1_api.repositories.DriverTeamSeasonRepository;
 import be.michielve.f1_api.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -17,12 +20,14 @@ public class TeamService {
     private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
     private final TeamRepository teamRepository;
+    private final DriverTeamSeasonRepository driverTeamSeasonRepository;
     private final TeamConverter teamConverter;
+    private final DriverTeamSeasonConverter driverTeamSeasonConverter;
 
-    public List<TeamResponse> getAllTeamsForSeason(String season) {
+    public List<TeamWithPointsResponse> getAllTeamsForSeason(String season) {
         logger.info("Fetching all teams for season: {}", season);
-        List<TeamResponse> teams = teamRepository.findAllTeamsBySeasonName(season).stream()
-                .map(teamConverter::teamResponseConverter)
+        List<TeamWithPointsResponse> teams = driverTeamSeasonRepository.findAllTeamsBySeasonName(season).stream()
+                .map(driverTeamSeasonConverter::teamResponseConverter)
                 .collect(Collectors.toList());
         logger.info("Successfully fetched {} teams for season: {}", teams.size(), season);
         return teams;

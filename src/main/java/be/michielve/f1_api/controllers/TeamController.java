@@ -1,6 +1,7 @@
 package be.michielve.f1_api.controllers;
 
 import be.michielve.f1_api.models.response.TeamResponse;
+import be.michielve.f1_api.models.response.TeamWithPointsResponse;
 import be.michielve.f1_api.services.TeamService;
 
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,9 @@ public class TeamController {
         private final TeamService teamService;
 
         @GetMapping("teams/{season}")
-        public ResponseEntity<List<TeamResponse>> getAllTeamsForCurrentSeason(
+        public ResponseEntity<List<TeamWithPointsResponse>> getAllTeamsForCurrentSeason(
                         @PathVariable String season) {
-                List<TeamResponse> teams = teamService.getAllTeamsForSeason(season);
+                List<TeamWithPointsResponse> teams = teamService.getAllTeamsForSeason(season);
 
                 if (teams.isEmpty()) {
                         return ResponseEntity.noContent().build();
