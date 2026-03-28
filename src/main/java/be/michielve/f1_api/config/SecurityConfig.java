@@ -29,6 +29,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -54,7 +56,7 @@ public class SecurityConfig {
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .clientRegistrationRepository(clientRegistrationRepository()) // Explicitly set the repository
+                        .clientRegistrationRepository(clientRegistrationRepository())
                         .successHandler(oAuthSuccessHandler)
                 )
                 .userDetailsService(userService)
@@ -69,14 +71,14 @@ public class SecurityConfig {
     }
 
     private ClientRegistration googleClientRegistration() {
-        String clientId = System.getProperty("spring.security.oauth2.client.registration.google.client-id");
-        if (clientId == null) clientId = System.getProperty("GOOGLE_CLIENT_ID");
+        String clientId = System.getProperty("GOOGLE_CLIENT_ID");
+        if (clientId == null) clientId = System.getenv("GOOGLE_CLIENT_ID");
 
-        String clientSecret = System.getProperty("spring.security.oauth2.client.registration.google.client-secret");
-        if (clientSecret == null) clientSecret = System.getProperty("GOOGLE_CLIENT_SECRET");
+        String clientSecret = System.getProperty("GOOGLE_CLIENT_SECRET");
+        if (clientSecret == null) clientSecret = System.getenv("GOOGLE_CLIENT_SECRET");
 
         if (clientId == null || clientId.isBlank()) {
-            throw new RuntimeException("OAuth2 Client ID is missing! Check your .env file for GOOGLE_CLIENT_ID");
+            throw new RuntimeException("OAuth2 Client ID is missing!");
         }
 
         return ClientRegistration.withRegistrationId("google")
@@ -97,9 +99,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of("http://localhost:4200", "https://f1.michielve.be/"));
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("*"));
+        configuration.setAllowedOrigins(List.of("http://localhost:4200", "https://f1.michielve.be"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

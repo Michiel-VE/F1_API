@@ -1,33 +1,28 @@
 package be.michielve.f1_api.services;
 
-import be.michielve.f1_api.models.Driver;
-import be.michielve.f1_api.models.Prediction;
-import be.michielve.f1_api.models.Race;
-import be.michielve.f1_api.models.User;
+import be.michielve.f1_api.models.*;
 import be.michielve.f1_api.models.request.CreatePredictionRequest;
-import be.michielve.f1_api.repositories.DriverRepository;
-import be.michielve.f1_api.repositories.PredictionRepository;
-import be.michielve.f1_api.repositories.RaceRepository;
-import be.michielve.f1_api.repositories.UserRepository;
+import be.michielve.f1_api.models.request.CreateSeasonPredictionRequest;
+import be.michielve.f1_api.repositories.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class PredictionService {
 
     private final PredictionRepository predictionRepository;
+    private final SeasonPredictionRepository seasonPredictionRepository;
     private final RaceRepository raceRepository;
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
+    private final SeasonRepository seasonRepository;
+    private final DriverTeamSeasonRepository driverTeamSeasonRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -37,27 +32,11 @@ public class PredictionService {
         UUID raceId = Objects.requireNonNull(request.getRaceId(), "Race ID cannot be null");
 
         List<UUID> predictedDriverIds = request.getPredictedDrivers();
+        validateUniqueIds(predictedDriverIds, 10, "driver");
 
-        if (predictedDriverIds == null || predictedDriverIds.size() != 10) {
-            throw new IllegalArgumentException("You must provide exactly 10 unique driver IDs.");
-        }
-
-        Set<UUID> uniqueDriverIds = new HashSet<>(predictedDriverIds);
-        if (uniqueDriverIds.size() != 10) {
-            List<UUID> duplicates = findDuplicates(predictedDriverIds);
-            throw new IllegalArgumentException("Duplicate driver IDs found: " + duplicates);
-        }
-
-        List<UUID> existingDriverIds = driverRepository.findAllById(uniqueDriverIds)
+        List<UUID> existingDriverIds = driverRepository.findAllById(predictedDriverIds)
                 .stream().map(Driver::getId).toList();
-
-        List<UUID> missingDriverIds = predictedDriverIds.stream()
-                .filter(id -> !existingDriverIds.contains(id))
-                .toList();
-
-        if (!missingDriverIds.isEmpty()) {
-            throw new IllegalArgumentException("Driver(s) not found: " + missingDriverIds);
-        }
+        validateExistence(predictedDriverIds, existingDriverIds, "Driver(s)");
 
         if (predictionRepository.existsByUserIdAndRaceId(nonNullUserId, raceId)) {
             throw new IllegalArgumentException("You already submitted a prediction for this race.");
@@ -65,7 +44,6 @@ public class PredictionService {
 
         Race race = raceRepository.findById(raceId)
                 .orElseThrow(() -> new IllegalArgumentException("Race not found"));
-
         User user = userRepository.findById(nonNullUserId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -75,15 +53,64 @@ public class PredictionService {
                 .predictedDrivers(convertListToJsonString(predictedDriverIds))
                 .build();
 
-        if (prediction == null) {
-            throw new IllegalStateException("Failed to create prediction object");
+        return predictionRepository.save(prediction);
+    }
+
+    @Transactional
+    public SeasonPrediction createTeamPrediction(UUID userId, CreateSeasonPredictionRequest request) {
+        UUID nonNullUserId = Objects.requireNonNull(userId, "You need to be logged in to submit a season prediction.");
+        Objects.requireNonNull(request, "Request cannot be null");
+
+        // 1. Get the Season ID for the current year (e.g., "2026")
+        String currentYearName = String.valueOf(LocalDate.now().getYear());
+        Season currentSeason = seasonRepository.findBySeasonName(currentYearName)
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Season " + currentYearName + " not found in database"));
+
+        // 1. Get all valid teams for this specific season
+        List<UUID> validTeamIdsForSeason = driverTeamSeasonRepository.findAllBySeasonId(currentSeason.getId())
+                .stream()
+                .map(dst -> dst.getTeam().getId())
+                .distinct()
+                .toList();
+
+        int actualTeamCount = validTeamIdsForSeason.size(); // This will be 10 or 11 depending on the DB
+        List<UUID> predictedTeamIds = request.getPredictedTeams();
+
+        validateUniqueIds(predictedTeamIds, actualTeamCount, "team");
+        validateExistence(predictedTeamIds, validTeamIdsForSeason, "Team(s) for season " + currentYearName);
+
+        // 3. Check for existing prediction
+        if (seasonPredictionRepository.existsByUserId(nonNullUserId)) {
+            throw new IllegalArgumentException("You already submitted your season team predictions.");
         }
 
-        try {
-            Prediction saved = predictionRepository.save(prediction);
-            return saved;
-        } catch (Exception e) {
-            throw new RuntimeException("Could not save prediction to database: " + e.getMessage(), e);
+        SeasonPrediction prediction = SeasonPrediction.builder()
+                .userId(nonNullUserId)
+                .predicted_teams(convertListToJsonString(predictedTeamIds))
+                .build();
+
+        return seasonPredictionRepository.save(prediction);
+    }
+
+    private void validateUniqueIds(List<UUID> ids, int expectedSize, String type) {
+        if (ids == null || ids.size() != expectedSize) {
+            throw new IllegalArgumentException(
+                    "You must provide exactly " + expectedSize + " unique " + type + " IDs.");
+        }
+        Set<UUID> uniqueIds = new HashSet<>(ids);
+        if (uniqueIds.size() != expectedSize) {
+            List<UUID> duplicates = findDuplicates(ids);
+            throw new IllegalArgumentException("Duplicate " + type + " IDs found: " + duplicates);
+        }
+    }
+
+    private void validateExistence(List<UUID> requested, List<UUID> existing, String label) {
+        List<UUID> missing = requested.stream()
+                .filter(id -> !existing.contains(id))
+                .toList();
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException(label + " not found or invalid for current season: " + missing);
         }
     }
 
@@ -95,9 +122,9 @@ public class PredictionService {
                 .toList();
     }
 
-    private String convertListToJsonString(List<UUID> driverIds) {
+    private String convertListToJsonString(List<UUID> ids) {
         try {
-            return objectMapper.writeValueAsString(driverIds);
+            return objectMapper.writeValueAsString(ids);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error converting list of UUIDs to JSON string", e);
         }

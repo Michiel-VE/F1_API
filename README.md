@@ -42,6 +42,15 @@ AWS Secrets Manager is used to securely store and access configuration values fo
 
 ## Running Instructions
 
+### Database Migrations
+This project uses Flyway for database versioning and schema management.
+
+Location: Migration scripts are located in src/main/resources/db/migration.
+
+Execution: Migrations run automatically when the application starts via ./gradlew bootRun.
+
+Naming Convention: New migrations must follow the pattern V<Number>__<Description>.sql (e.g., V2__create_season_prediction_table.sql). Note the double underscore.
+
 ### Local Development
 To run the Spring Boot application locally:
 ```powershell

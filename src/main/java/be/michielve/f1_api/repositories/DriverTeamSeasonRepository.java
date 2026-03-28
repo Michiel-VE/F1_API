@@ -65,4 +65,6 @@ public interface DriverTeamSeasonRepository extends JpaRepository<DriverTeamSeas
             ORDER BY total_points DESC;
                         """, nativeQuery = true)
     List<TeamWithPoints> findAllTeamsBySeasonName(@Param("seasonName") String seasonName);
+
+    List<DriverTeamSeason> findAllBySeasonId(UUID seasonId);
 }
