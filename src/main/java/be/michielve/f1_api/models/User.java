@@ -13,7 +13,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class User extends BaseEntry {
-    @Column(unique = true)
+    @Column
     private String provider;
 
     @Column(unique = true)

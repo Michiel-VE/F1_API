@@ -54,10 +54,9 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            logger.warn("JWT processing failed:" + e.getMessage());
+            logger.warn("JWT processing failed: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
-
 }
