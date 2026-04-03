@@ -1,7 +1,8 @@
 package be.michielve.f1_api.lambdas;
 
-import be.michielve.f1_api.F1ApiApplication;
-import be.michielve.f1_api.config.DotenvInitializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.serverless.exceptions.ContainerInitializationException;
 import com.amazonaws.serverless.proxy.model.AwsProxyRequest;
 import com.amazonaws.serverless.proxy.model.AwsProxyResponse;
@@ -9,8 +10,9 @@ import com.amazonaws.serverless.proxy.spring.SpringBootLambdaContainerHandler;
 import com.amazonaws.serverless.proxy.spring.SpringBootProxyHandlerBuilder;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import be.michielve.f1_api.F1ApiApplication;
+import be.michielve.f1_api.config.DotenvInitializer;
 
 public class LambdaHandler implements RequestHandler<AwsProxyRequest, AwsProxyResponse> {
 
