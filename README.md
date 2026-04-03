@@ -2,54 +2,48 @@
 
 ## Overview
 
-The F1 API serves as the backend for the Formula 1 Dashboard project. It handles all data processing, including scraping, storing, and providing access to Formula 1 data via REST endpoints. The API is built with Java 17 and Spring Boot, and is deployed as an AWS Lambda function behind an API Gateway.
+The F1 API serves as the backend for the Formula 1 Dashboard project. It handles all data processing, including scraping, storing, and providing access to Formula 1 data via REST endpoints. 
 
-This API powers the frontend application, which interacts with the backend to display Formula 1 data such as standings, teams, and races.
+The API is built with **Java 17** and **Spring Boot 3**, containerized with **Docker**, and deployed as **AWS Lambda** functions behind an **API Gateway**.
 
 ## Architecture
 
-- **Backend**: Java 17, Spring Boot
-- **Authentication**: JWT, Bearer Tokens, and Google OAuth
-- **Database**: PostgreSQL (Required)
-- **Scraping**: Jsoup (Scheduled with Cron)
-- **Deployment**: AWS Lambda with AWS API Gateway
+- **Language**: Java 17 (Source) / Java 21 (Runtime)
+- **Framework**: Spring Boot 3
+- **Infrastructure**: Terraform (IaC)
+- **Containerization**: Amazon ECR (Elastic Container Registry)
+- **Compute**: AWS Lambda (Image Packaging Type)
+- **API Management**: AWS API Gateway (REST)
+- **Database**: PostgreSQL
+- **Security**: JWT, Bearer Tokens, and Google OAuth 2.0
+- **Scraping**: Jsoup (Scheduled via EventBridge/CloudWatch Crons)
 
 ## Data Flow
 
-1. Data is scraped from the official [**f1.com**](www.f1.com) website using Jsoup.
-2. The scraped data is stored in a PostgreSQL database.
-3. The API provides endpoints for retrieving the data, including historical standings, teams, and races.
-4. All API calls are authenticated using JWT tokens or Google OAuth.
+1. **Scraping**: Scheduled Lambda handlers (Race, Driver, Standing) scrape data from [f1.com](https://www.f1.com) using Jsoup.
+2. **Storage**: Scraped data is persisted in a PostgreSQL database; schema is managed via Flyway migrations.
+3. **Consumption**: The main API Lambda serves REST endpoints to the frontend.
+4. **Security**: Requests are validated via JWT tokens or authenticated through Google OAuth.
 
 ## Authentication
 
-This API uses JWT and Bearer Tokens for authentication. Google OAuth is also supported for user authentication.
-
-The API expects a valid token to be included in the `Authorization` header for all requests that require authentication.
+This API uses JWT and Bearer Tokens for authentication. Google OAuth is also supported for user authentication. The API expects a valid token to be included in the `Authorization` header for all requests that require authentication.
 
 ## Environment Configuration
 
-The API supports two environments:
-
-- **Local**: Configuration values are stored in the `.env` file, which is loaded into `application.properties`.
-- **Production**: Configuration values, including secrets, are stored in AWS Secrets Manager.
+- **Local**: Configuration is managed via a `.env` file loaded into `application.properties`.
+- **Production**: Infrastructure and secrets are managed via **Terraform** and **AWS Secrets Manager**.
 
 **Local Environment Setup**:  
 Ensure the `.env` file contains all necessary configuration variables, such as database connection strings and JWT secrets.
-
-**Production Environment**:  
-AWS Secrets Manager is used to securely store and access configuration values for the production environment.
 
 ## Running Instructions
 
 ### Database Migrations
 This project uses Flyway for database versioning and schema management.
-
-Location: Migration scripts are located in src/main/resources/db/migration.
-
-Execution: Migrations run automatically when the application starts via ./gradlew bootRun.
-
-Naming Convention: New migrations must follow the pattern V<Number>__<Description>.sql (e.g., V2__create_season_prediction_table.sql). Note the double underscore.
+- **Location**: Migration scripts are located in `src/main/resources/db/migration`.
+- **Execution**: Migrations run automatically when the application starts.
+- **Naming Convention**: New migrations must follow the pattern `V<Number>__<Description>.sql` (e.g., `V2__create_tables.sql`). Note the double underscore.
 
 ### Local Development
 To run the Spring Boot application locally:
@@ -62,22 +56,26 @@ To create a standard Spring Boot JAR (for local testing only):
 
 ```PowerShell
 ./gradlew bootJar
-Output: build/libs/f1_api-local.jar
+# Output: build/libs/f1_api-local.jar
 ```
 
-Build for AWS Lambda
-To create the "flat" Shadow JAR required for deployment (removes BOOT-INF structure):
+### Deployment Process
+The project is deployed using a PowerShell automation script (deploy.ps1) which performs the following:
+
+- **Build**: Generates a "Shadow JAR" to ensure the correct structure for Lambda.
+
+- **Containerize**: Builds a Docker image using the public.ecr.aws/lambda/java:21 base.
+
+- **Registry**: Authenticates with AWS ECR and pushes the tagged image.
+
+- **Cleanup**: Removes the local Docker image after a successful push to save disk space.
+
+- **Infrastructure**: Runs terraform apply to update the Lambda functions with the new image URI.
+
+To deploy to production:
 
 ```PowerShell
-./gradlew clean shadowJar
-Output: build/libs/f1_api.jar
-```
-
-Run the Shadow JAR Locally
-To verify the deployment JAR on your machine:
-
-```PowerShell
-java -jar build/libs/f1_api.jar
+./deploy.ps1
 ```
 
 ## Endpoints
