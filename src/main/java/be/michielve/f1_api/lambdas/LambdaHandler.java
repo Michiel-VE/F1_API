@@ -21,10 +21,9 @@ public class LambdaHandler implements RequestHandler<AwsProxyRequest, AwsProxyRe
 
     static {
         try {
-            // Initialize environment and system properties
             DotenvInitializer.init();
             
-            // Fixed: The builder only takes the Request type argument <AwsProxyRequest>
+            // The builder now internally handles the Jakarta/Spring 4 logic
             handler = new SpringBootProxyHandlerBuilder<AwsProxyRequest>()
                     .defaultProxy()
                     .servletApplication()

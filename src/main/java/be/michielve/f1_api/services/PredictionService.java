@@ -4,7 +4,6 @@ import be.michielve.f1_api.models.*;
 import be.michielve.f1_api.models.request.CreatePredictionRequest;
 import be.michielve.f1_api.models.request.CreateSeasonPredictionRequest;
 import be.michielve.f1_api.repositories.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,6 @@ public class PredictionService {
     private final DriverRepository driverRepository;
     private final SeasonRepository seasonRepository;
     private final DriverTeamSeasonRepository driverTeamSeasonRepository;
-    private final ObjectMapper objectMapper;
 
     @Transactional
     public Prediction createPrediction(UUID userId, CreatePredictionRequest request) {
@@ -123,10 +121,8 @@ public class PredictionService {
     }
 
     private String convertListToJsonString(List<UUID> ids) {
-        try {
-            return objectMapper.writeValueAsString(ids);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error converting list of UUIDs to JSON string", e);
-        }
+        return ids.stream()
+                .map(id -> "\"" + id.toString() + "\"")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
     }
 }

@@ -24,11 +24,6 @@ public class JwtService {
     @Value("${jwt.expiration:3600000}")
     private long expiration;
 
-    public String generateToken(String email) {
-        Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email);
-    }
-
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .claims(claims)
@@ -44,29 +39,12 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
-    }
-
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith((SecretKey) getSignInKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        try {
-            return !isTokenExpired(token);
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     private Date extractExpiration(String token) {
@@ -76,4 +54,32 @@ public class JwtService {
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
+
+    public String generateToken(String email) {
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, email);
+    }
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        try {
+            final String username = extractUsername(token);
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public long getExpiration() {
+        return expiration;
+    }
+
 }

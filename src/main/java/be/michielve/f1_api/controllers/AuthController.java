@@ -3,6 +3,8 @@ package be.michielve.f1_api.controllers;
 import be.michielve.f1_api.models.request.LoginRequest;
 import be.michielve.f1_api.models.request.RegisterRequest;
 import be.michielve.f1_api.services.AuthService;
+import be.michielve.f1_api.services.JwtService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,14 +13,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest registerRequest) {
@@ -27,8 +28,21 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest loginRequest) {
-        String token = authService.login(loginRequest);
-        return ResponseEntity.ok(Map.of("token", token));
+    public ResponseEntity<Void> login(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletResponse response) {
+        boolean isProduction = System.getenv("BASE_URL") != null;
+        String cookieHeader = authService.loginAndGetCookieHeader(
+                loginRequest, isProduction, jwtService.getExpiration());
+        response.addHeader("Set-Cookie", cookieHeader);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        boolean isProduction = System.getenv("BASE_URL") != null;
+        String cookieHeader = AuthService.buildCookieHeader("", isProduction, 0);
+        response.addHeader("Set-Cookie", cookieHeader);
+        return ResponseEntity.ok().build();
     }
 }
