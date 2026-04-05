@@ -6,11 +6,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
-import org.springframework.util.SerializationUtils;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 public class HttpCookieOAuth2AuthorizationRequestRepository
@@ -19,6 +22,12 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
     public static final String OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME = "oauth2_auth_request";
     public static final String REDIRECT_URI_PARAM_COOKIE_NAME = "redirect_uri";
     private static final int COOKIE_EXPIRE_SECONDS = 180;
+
+    private final ObjectMapper objectMapper;
+
+    public HttpCookieOAuth2AuthorizationRequestRepository() {
+        this.objectMapper = JsonMapper.builder().build();
+    }
 
     @Override
     public OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
@@ -36,25 +45,14 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
             return;
         }
 
-        // Save the authorization request in a cookie
+        boolean isProduction = System.getenv("BASE_URL") != null;
         String secret = serialize(authorizationRequest);
-        Cookie authCookie = new Cookie(OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, secret);
-        authCookie.setPath("/");
-        authCookie.setHttpOnly(true);
-        authCookie.setSecure(true);
-        authCookie.setMaxAge(COOKIE_EXPIRE_SECONDS);
-        response.addCookie(authCookie);
+        
+        addCookie(response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, secret, COOKIE_EXPIRE_SECONDS, isProduction);
 
-        // Capture the target path (e.g., /profile) sent from Angular
-        // IMPORTANT: Angular must send this as ?redirect_uri=/path
         String redirectUriAfterLogin = request.getParameter(REDIRECT_URI_PARAM_COOKIE_NAME);
         if (StringUtils.hasText(redirectUriAfterLogin)) {
-            Cookie redirectCookie = new Cookie(REDIRECT_URI_PARAM_COOKIE_NAME, redirectUriAfterLogin);
-            redirectCookie.setPath("/");
-            redirectCookie.setHttpOnly(true);
-            redirectCookie.setSecure(true);
-            redirectCookie.setMaxAge(COOKIE_EXPIRE_SECONDS);
-            response.addCookie(redirectCookie);
+            addCookie(response, REDIRECT_URI_PARAM_COOKIE_NAME, redirectUriAfterLogin, COOKIE_EXPIRE_SECONDS, isProduction);
         }
     }
 
@@ -64,18 +62,70 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         return this.loadAuthorizationRequest(request);
     }
 
-    public void removeAuthorizationRequestCookies(HttpServletRequest request, HttpServletResponse response) {
-        deleteCookie(request, response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME);
-        deleteCookie(request, response, REDIRECT_URI_PARAM_COOKIE_NAME);
+    private void addCookie(HttpServletResponse response, String name, String value, int maxAge, boolean isProduction) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(isProduction);
+        cookie.setMaxAge(maxAge);
+        response.addCookie(cookie);
     }
 
-    private String serialize(Object object) {
-        return Base64.getUrlEncoder().encodeToString(SerializationUtils.serialize(object));
+    public void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
+        boolean isProduction = System.getenv("BASE_URL") != null;
+        Cookie cookie = new Cookie(name, "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(isProduction);
+        response.addCookie(cookie);
+    }
+
+    private String serialize(OAuth2AuthorizationRequest authorizationRequest) {
+        try {
+            Map<String, Object> data = Map.of(
+                    "clientId", authorizationRequest.getClientId(),
+                    "authorizationUri", authorizationRequest.getAuthorizationUri(),
+                    "redirectUri", authorizationRequest.getRedirectUri() != null ? authorizationRequest.getRedirectUri() : "",
+                    "scopes", authorizationRequest.getScopes(),
+                    "state", authorizationRequest.getState() != null ? authorizationRequest.getState() : "",
+                    "additionalParameters", authorizationRequest.getAdditionalParameters(),
+                    "attributes", authorizationRequest.getAttributes());
+            byte[] bytes = objectMapper.writeValueAsBytes(data);
+            return Base64.getUrlEncoder().encodeToString(bytes);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize OAuth2AuthorizationRequest", e);
+        }
     }
 
     private OAuth2AuthorizationRequest deserialize(Cookie cookie) {
-        return (OAuth2AuthorizationRequest) SerializationUtils.deserialize(
-                Base64.getUrlDecoder().decode(cookie.getValue()));
+        try {
+            byte[] bytes = Base64.getUrlDecoder().decode(cookie.getValue());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = objectMapper.readValue(bytes, Map.class);
+
+            @SuppressWarnings("unchecked")
+            Set<String> scopes = data.get("scopes") instanceof Set ? (Set<String>) data.get("scopes")
+                    : new java.util.LinkedHashSet<>((java.util.List<String>) data.get("scopes"));
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalParameters = (Map<String, Object>) data.get("additionalParameters");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> attributes = (Map<String, Object>) data.get("attributes");
+
+            return OAuth2AuthorizationRequest.authorizationCode()
+                    .clientId((String) data.get("clientId"))
+                    .authorizationUri((String) data.get("authorizationUri"))
+                    .redirectUri((String) data.get("redirectUri"))
+                    .scopes(scopes)
+                    .state((String) data.get("state"))
+                    .additionalParameters(additionalParameters)
+                    .attributes(attributes)
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to deserialize OAuth2AuthorizationRequest", e);
+        }
     }
 
     public Optional<Cookie> getCookie(HttpServletRequest request, String name) {
@@ -88,14 +138,5 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
             }
         }
         return Optional.empty();
-    }
-
-    public void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
-        Cookie cookie = new Cookie(name, "");
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        response.addCookie(cookie);
     }
 }

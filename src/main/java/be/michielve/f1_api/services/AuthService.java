@@ -6,19 +6,16 @@ import be.michielve.f1_api.models.request.LoginRequest;
 import be.michielve.f1_api.models.request.RegisterRequest;
 import be.michielve.f1_api.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,24 +27,16 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    @Value("${jwt.secret.key}")
-    private String secretKey;
-
     @Lazy
     private final AuthenticationManager authenticationManager;
 
     public Optional<User> findOrCreateUser(String provider, String providerId, Map<String, Object> attributes) {
         Optional<User> existingUser = userRepository.findByProviderAndProviderId(provider, providerId);
-
         if (existingUser.isPresent()) {
             return existingUser;
         }
-
         User newUser = buildUserFromOAuth(provider, providerId, attributes);
-        if (newUser != null) {
-            userRepository.save(newUser);
-        }
-
+        userRepository.save(newUser);
         return Optional.of(newUser);
     }
 
@@ -55,31 +44,36 @@ public class AuthService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email is already in use.");
         }
-
-        // Create new user
         User newUser = new User();
         newUser.setName(request.getName());
         newUser.setEmail(request.getEmail());
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
         newUser.setRole(Role.USER);
         newUser.setCreated_at(Timestamp.from(Instant.now()));
-
-        // Save new user to database
         userRepository.save(newUser);
     }
 
-    // Method for login: authenticates user and returns JWT token
-    public String login(LoginRequest request) {
-        try {
-            String decryptedPassword = decryptPassword(request.getPassword());
+    public String loginAndGetCookieHeader(LoginRequest request, boolean isProduction, long expirationMs) {
+        UserDetails user = (UserDetails) authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()))
+                .getPrincipal();
 
-            UserDetails user = (UserDetails) authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), decryptedPassword)).getPrincipal();
+        String token = jwtService.generateToken(user.getUsername());
+        return buildCookieHeader(token, isProduction, (int) (expirationMs / 1000));
+    }
 
-            return jwtService.generateToken(user.getUsername());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public static String buildCookieHeader(String token, boolean isProduction, int maxAgeSeconds) {
+        ResponseCookie cookie = ResponseCookie.from("jwt", token)
+                .httpOnly(true)
+                .secure(isProduction)
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .sameSite("Lax")
+                .domain(isProduction ? "michielve.be" : null)
+                .build();
+        return cookie.toString();
     }
 
     private User buildUserFromOAuth(String provider, String providerId, Map<String, Object> attributes) {
@@ -88,33 +82,8 @@ public class AuthService {
         user.setProviderId(providerId);
         user.setEmail((String) attributes.get("email"));
         user.setName((String) attributes.get("name"));
-        user.setRole(Role.USER); // Default role
+        user.setRole(Role.USER);
         user.setCreated_at(Timestamp.from(Instant.now()));
         return user;
-    }
-
-    private String decryptPassword(String encryptedPassword) throws Exception {
-        byte[] decodedBytes = Base64.getDecoder().decode(encryptedPassword);
-
-        SecretKeySpec secretKeyspec = new SecretKeySpec(sliceString(secretKey).getBytes(), "AES");
-
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, secretKeyspec);
-
-        byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-
-        return new String(decryptedBytes);
-
-    }
-
-    public static String sliceString(String input) {
-        int offset = 15;
-
-        if (input == null || input.isEmpty()) {
-            return "";
-        }
-        int length = input.length() / 2;
-
-        return input.substring(offset, offset + length);
     }
 }

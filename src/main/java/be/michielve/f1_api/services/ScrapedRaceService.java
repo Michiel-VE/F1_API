@@ -2,9 +2,11 @@ package be.michielve.f1_api.services;
 
 import be.michielve.f1_api.models.Race;
 import be.michielve.f1_api.models.RaceSeason;
+import be.michielve.f1_api.models.RaceStatus;
 import be.michielve.f1_api.models.Season;
 import be.michielve.f1_api.repositories.RaceRepository;
 import be.michielve.f1_api.repositories.RaceSeasonRepository;
+import be.michielve.f1_api.repositories.RaceStatusRepository;
 import be.michielve.f1_api.repositories.SeasonRepository;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
@@ -45,6 +47,7 @@ public class ScrapedRaceService {
 
     private final SeasonRepository seasonRepository;
     private final RaceRepository raceRepository;
+    private final RaceStatusRepository raceStatusRepository;
     private final RaceSeasonRepository raceSeasonRepository;
 
     @Value("${f1.api.base-url:https://www.formula1.com}")
@@ -111,20 +114,24 @@ public class ScrapedRaceService {
 
         // Call via 'self' proxy to ensure individual transaction
         Season season = self.getOrCreateSeason(year);
+        RaceStatus scheduledStatus = raceStatusRepository.findByName("SCHEDULED")
+                .orElseThrow(() -> new RuntimeException("RaceStatus 'SCHEDULED' not found"));
 
         logger.info("Processing {} scraped races for season '{}'.", scrapedData.size(), year);
 
         for (Race scrapedRace : scrapedData) {
             try {
                 // Call via 'self' proxy to ensure individual transaction for each race
-                self.processSingleRace(scrapedRace, season);
+                self.processSingleRace(scrapedRace, season, scheduledStatus);
             } catch (Exception e) {
-                logger.error("Failed to process race '{}' for season {}: {}", scrapedRace.getName(), year, e.getMessage());
+                logger.error("Failed to process race '{}' for season {}: {}", scrapedRace.getName(), year,
+                        e.getMessage());
             }
         }
 
         long duration = System.nanoTime() - startTime;
-        logger.info("Race update for season {} completed. Duration: {}ms", year, TimeUnit.NANOSECONDS.toMillis(duration));
+        logger.info("Race update for season {} completed. Duration: {}ms", year,
+                TimeUnit.NANOSECONDS.toMillis(duration));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -141,22 +148,22 @@ public class ScrapedRaceService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processSingleRace(Race scrapedRace, Season season) {
+    public void processSingleRace(Race scrapedRace, Season season, RaceStatus defaultStatus) {
         Race race = raceRepository.findByNameAndRaceStartDateAndRaceEndDate(
                 scrapedRace.getName(),
                 scrapedRace.getRaceStartDate(),
-                scrapedRace.getRaceEndDate()
-        ).orElseGet(() -> {
-            logger.info("Race '{}' not found. Saving new race record.", scrapedRace.getName());
-            Race newRace = new Race();
-            newRace.setName(scrapedRace.getName());
-            newRace.setCountry(scrapedRace.getCountry());
-            newRace.setRaceStartDate(scrapedRace.getRaceStartDate());
-            newRace.setRaceEndDate(scrapedRace.getRaceEndDate());
-            newRace.setUpdated_at(Timestamp.from(Instant.now()));
-            newRace.setCreated_at(Timestamp.from(Instant.now()));
-            return raceRepository.save(newRace);
-        });
+                scrapedRace.getRaceEndDate()).orElseGet(() -> {
+                    logger.info("Race '{}' not found. Saving new race record.", scrapedRace.getName());
+                    Race newRace = new Race();
+                    newRace.setName(scrapedRace.getName());
+                    newRace.setCountry(scrapedRace.getCountry());
+                    newRace.setRaceStartDate(scrapedRace.getRaceStartDate());
+                    newRace.setRaceEndDate(scrapedRace.getRaceEndDate());
+                    newRace.setStatus(defaultStatus);
+                    newRace.setUpdated_at(Timestamp.from(Instant.now()));
+                    newRace.setCreated_at(Timestamp.from(Instant.now()));
+                    return raceRepository.save(newRace);
+                });
 
         if (!raceSeasonRepository.existsByRaceAndSeason(race, season)) {
             logger.info("Linking race '{}' to season '{}'.", race.getName(), season.getSeasonName());
@@ -181,14 +188,16 @@ public class ScrapedRaceService {
     private int parseMonth(String monthStr) {
         for (Month m : Month.values()) {
             String shortName = m.getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-            if (shortName.equalsIgnoreCase(monthStr)) return m.getValue();
+            if (shortName.equalsIgnoreCase(monthStr))
+                return m.getValue();
         }
         throw new IllegalArgumentException("Invalid month: " + monthStr);
     }
 
     private LocalDate[] parseDateRange(String range, String year) {
         try {
-            Pattern crossMonth = Pattern.compile("(?<startDay>\\d{2}).*?(?<startMonth>[a-zA-Z]{3}).*?(?<endDay>\\d{2}).*?(?<endMonth>[a-zA-Z]{3})");
+            Pattern crossMonth = Pattern.compile(
+                    "(?<startDay>\\d{2}).*?(?<startMonth>[a-zA-Z]{3}).*?(?<endDay>\\d{2}).*?(?<endMonth>[a-zA-Z]{3})");
             Pattern sameMonth = Pattern.compile("(?<startDay>\\d{2}).*?(?<endDay>\\d{2}).*?(?<endMonth>[a-zA-Z]{3})");
 
             Matcher matcherCrossMonth = crossMonth.matcher(range);
@@ -211,7 +220,8 @@ public class ScrapedRaceService {
             }
 
             int yearInt = Integer.parseInt(year);
-            return new LocalDate[]{LocalDate.of(yearInt, startMonth, startDay), LocalDate.of(yearInt, endMonth, endDay)};
+            return new LocalDate[] { LocalDate.of(yearInt, startMonth, startDay),
+                    LocalDate.of(yearInt, endMonth, endDay) };
         } catch (Exception e) {
             throw new RuntimeException("Invalid date range format: " + range, e);
         }

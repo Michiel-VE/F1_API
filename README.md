@@ -8,7 +8,7 @@ The API is built with **Java 17** and **Spring Boot 3**, containerized with **Do
 
 ## Architecture
 
-- **Language**: Java 17 (Source) / Java 21 (Runtime)
+- **Language**: Java 21
 - **Framework**: Spring Boot 3
 - **Infrastructure**: Terraform (IaC)
 - **Containerization**: Amazon ECR (Elastic Container Registry)

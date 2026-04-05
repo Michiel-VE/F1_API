@@ -52,7 +52,8 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                     .map(Cookie::getValue)
                     .orElse("/");
 
-            final String finalReturnUrl = (cookieReturnUrl.startsWith("/") && !cookieReturnUrl.contains(" "))
+            // Stricter open redirect fix
+            final String finalReturnUrl = (cookieReturnUrl.matches("^/[^/].*") || cookieReturnUrl.equals("/"))
                     ? cookieReturnUrl
                     : "/";
 
@@ -63,9 +64,13 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                     .ifPresentOrElse(user -> {
                         String token = jwtService.generateToken(user.getEmail());
 
+                        boolean isProduction = envFrontendUrl != null && !envFrontendUrl.isEmpty();
+                        String cookieHeader = AuthService.buildCookieHeader(
+                                token, isProduction, (int) (jwtService.getExpiration() / 1000));
+                        response.addHeader("Set-Cookie", cookieHeader);
+
                         String targetUrl = UriComponentsBuilder.fromUriString(baseUrl)
                                 .path("/login")
-                                .queryParam("token", token)
                                 .queryParam("returnUrl", finalReturnUrl)
                                 .build().toUriString();
 
@@ -76,7 +81,7 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                             log.error("Failed to redirect after OAuth2 success", e);
                         }
                     }, () -> {
-                        log.error("OAuth success but user could not be found or created in database");
+                        log.error("OAuth success but user could not be found or created");
                         try {
                             response.sendRedirect(baseUrl + "/login?error=user_creation_failed");
                         } catch (IOException e) {

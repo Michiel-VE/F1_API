@@ -15,6 +15,8 @@ public class RaceConverter {
                 .country(race.getCountry())
                 .startDay(race.getRaceStartDate())
                 .endDay(race.getRaceEndDate())
+                .extraInfo(race.getExtraInfo())
+                .status(race.getStatus().getName())
                 .created_at(race.getCreated_at())
                 .build();
     }

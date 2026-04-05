@@ -23,7 +23,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -61,9 +60,18 @@ public class SecurityConfig {
                                 .exceptionHandling(exceptions -> exceptions
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new LoginUrlAuthenticationEntryPoint(loginEndpoint),
-                                                                new AntPathRequestMatcher("/api/v1/**")))
+                                                                request -> request.getServletPath()
+                                                                                .startsWith("/api/v1/")))
                                 .authorizeHttpRequests(authz -> authz
-                                                .requestMatchers("/api/v1/profile", "/api/v1/prediction")
+                                                .requestMatchers(
+                                                                "/api/v1/auth/login",
+                                                                "/api/v1/auth/register",
+                                                                "/api/v1/auth/logout")
+                                                .permitAll()
+                                                .requestMatchers(
+                                                                "/api/v1/profile",
+                                                                "/api/v1/predictions",
+                                                                "/api/v1/predictions/**")
                                                 .authenticated()
                                                 .anyRequest().permitAll())
                                 .oauth2Login(oauth2 -> oauth2

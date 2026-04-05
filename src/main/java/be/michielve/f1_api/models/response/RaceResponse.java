@@ -19,6 +19,8 @@ public class RaceResponse {
     private String country;
     private LocalDate startDay;
     private LocalDate endDay;
+    private String extraInfo;
+    private String status;
     private Timestamp created_at;
     private Timestamp updated_at;
 }
