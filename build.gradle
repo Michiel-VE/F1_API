@@ -3,7 +3,6 @@ plugins {
     id 'org.springframework.boot' version '4.0.4'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'maven-publish'
-    id 'com.gradleup.shadow' version '9.4.0'
 }
 
 group = 'be.michielve'
@@ -19,31 +18,31 @@ repositories {
     mavenCentral()
 }
 
-
 dependencies {
     // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-persistence'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-json'
-    
+
     // Database & Flyway
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.postgresql:postgresql:42.7.5'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-71:3.15.2'
-    
-    // AWS Lambda (Still needed for the handler interface in Docker)
+
+    // AWS Lambda
     implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
     implementation 'com.amazonaws:aws-lambda-java-events:3.15.0'
     implementation 'com.amazonaws.serverless:aws-serverless-java-container-springboot4:3.0.0'
-    
+
     // AWS SDK
     implementation platform('software.amazon.awssdk:bom:2.30.13')
     implementation 'software.amazon.awssdk:secretsmanager'
-    
+
     // Security & JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
@@ -58,7 +57,7 @@ dependencies {
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.36'
     annotationProcessor 'org.projectlombok:lombok:1.18.36'
-    
+
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testCompileOnly 'org.projectlombok:lombok:1.18.36'
@@ -71,17 +70,27 @@ springBoot {
     mainClass = 'be.michielve.f1_api.F1ApiApplication'
 }
 
-shadowJar {
-    archiveFileName = 'f1_api.jar'
-    mergeServiceFiles()
-    append 'META-INF/spring.handlers'
-    append 'META-INF/spring.schemas'
-    append 'META-INF/spring.tooling'
-    append 'META-INF/spring.factories'
-    append 'META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports'
-    append 'META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports'
-    append 'META-INF/services/java.sql.Driver'
+bootJar {
+    enabled = true
+    archiveFileName = 'f1_api-boot.jar'
 }
+
+jar {
+    enabled = true
+    archiveFileName = 'f1_api.jar'
+    manifest {
+        attributes 'Implementation-Title': 'f1_api'
+    }
+}
+
+tasks.register('copyDependencies', Copy) {
+    dependsOn configurations.runtimeClasspath
+    from configurations.runtimeClasspath
+    into layout.buildDirectory.dir('libs/dependency')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+build.dependsOn copyDependencies
 
 tasks.named('test') {
     systemProperty "wiremock.record", System.getProperty("wiremock.record")
