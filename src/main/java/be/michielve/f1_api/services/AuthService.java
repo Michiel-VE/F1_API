@@ -82,6 +82,7 @@ public class AuthService {
         user.setProviderId(providerId);
         user.setEmail((String) attributes.get("email"));
         user.setName((String) attributes.get("name"));
+        user.setPicture((String) attributes.get("picture"));
         user.setRole(Role.USER);
         user.setCreated_at(Timestamp.from(Instant.now()));
         return user;

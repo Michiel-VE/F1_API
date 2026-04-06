@@ -32,8 +32,7 @@ public class ProfileController {
                     .body(new ErrorResponse(
                             "Authentication required",
                             HttpStatus.UNAUTHORIZED.value(),
-                            LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    ));
+                            LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
         }
 
         String email = null;
@@ -46,17 +45,19 @@ public class ProfileController {
         }
 
         if (email == null) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Email/Username not found in authentication principal.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                            "Could not resolve identity from authentication token.",
+                            HttpStatus.UNAUTHORIZED.value(),
+                            LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
         }
 
-        String finalEmail = email;
         return userService.findByEmail(email)
-                .map(user -> ResponseEntity.ok((User) user))
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.INTERNAL_SERVER_ERROR,
-                                "Authenticated user profile not found in database for email: " + finalEmail
-                        )
-                );
+                .<ResponseEntity<?>>map(user -> ResponseEntity.ok((User) user))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse(
+                                "User profile not found.",
+                                HttpStatus.NOT_FOUND.value(),
+                                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))));
     }
 }

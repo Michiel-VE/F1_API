@@ -27,8 +27,8 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
     public OAuthSuccessHandler(JwtService jwtService,
-            @Lazy AuthService authService,
-            HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository) {
+        @Lazy AuthService authService,
+        HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository) {
         this.jwtService = jwtService;
         this.authService = authService;
         this.httpCookieOAuth2AuthorizationRequestRepository = httpCookieOAuth2AuthorizationRequestRepository;

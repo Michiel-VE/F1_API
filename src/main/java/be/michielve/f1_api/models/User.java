@@ -5,10 +5,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "users", schema = "f1_api")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
@@ -32,4 +32,6 @@ public class User extends BaseEntry {
     @Column(nullable = false)
     private Role role;
 
+    @Column(length = 2048)
+    private String picture;
 }
