@@ -7,14 +7,15 @@ import java.time.Year;
 
 @Component
 @RequiredArgsConstructor
-public class F1Scheduler  {
+public class F1Scheduler {
 
     private final ScrapedStandingService scrapedStandingService;
     private final ScrapedRaceService scrapedRaceService;
     private final ScrapedDriverService scrapedDriverService;
     private final ScrapedTeamService scrapedTeamService;
-    
-    String currentYear = String.valueOf( Year.now().getValue());
+    private final ScrapedRaceResultService scrapedRaceResultService;
+
+    private final String currentYear = String.valueOf(Year.now().getValue());
 
     public void updateRacesSeason() {
         scrapedRaceService.updateRaceFromScraperForSeason(currentYear);
@@ -22,7 +23,6 @@ public class F1Scheduler  {
 
     public void updateCurrentDriversAndPoints() {
         scrapedStandingService.updateDriverAndPointsFromScraperForSeason(currentYear);
-
     }
 
     public void updateDriverAndTeam() {
@@ -30,6 +30,7 @@ public class F1Scheduler  {
         scrapedTeamService.updateTeamsFromScraper();
     }
 
+    public void updateRaceResults() {
+        scrapedRaceResultService.updatePendingRaceResults(currentYear);
+    }
 }
-
-

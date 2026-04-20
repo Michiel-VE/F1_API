@@ -40,4 +40,6 @@ public interface DriverRepository extends JpaRepository<Driver, UUID> {
         Optional<Driver> findByFirstnameAndLastnameIgnoreCase(String firstName, String lastName);
 
         List<Driver> findByPermanentNumber(Integer permanentNumber);
+
+        Optional<Driver> findByDriverCode(String driverCode);
 }
