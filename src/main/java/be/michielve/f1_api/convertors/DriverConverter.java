@@ -1,19 +1,19 @@
 package be.michielve.f1_api.convertors;
 
 import be.michielve.f1_api.models.Driver;
+import be.michielve.f1_api.models.DriverRaceResult;
 import be.michielve.f1_api.models.DriverTeamSeason;
-import be.michielve.f1_api.models.response.DriverCareerHistoryResponse;
-import be.michielve.f1_api.models.response.DriverResponse;
-import be.michielve.f1_api.models.response.DriverWithSeasonsResponse;
-import be.michielve.f1_api.models.response.TeamSeasonResponse;
+import be.michielve.f1_api.models.response.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Component
 public class DriverConverter {
+
     public DriverWithSeasonsResponse driverResponseWithSeasonsConvert(Driver driver) {
         return DriverWithSeasonsResponse.builder()
                 .driverId(driver.getId())
@@ -45,8 +45,24 @@ public class DriverConverter {
                 .build();
     }
 
-    public DriverCareerHistoryResponse driverCareerHistoryResponse(Driver driver){
-        return DriverCareerHistoryResponse.builder().build();
+    public DriverRaceResultsResponse toDriverRaceResultsResponse(Driver driver, List<DriverRaceResult> results, String season) {
+        return DriverRaceResultsResponse.builder()
+                .firstname(driver.getFirstname())
+                .lastname(driver.getLastname())
+                .season(season)
+                .results(results.stream()
+                        .map(this::toRaceResultDTO)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    private RaceResultDTO toRaceResultDTO(DriverRaceResult result) {
+        return RaceResultDTO.builder()
+                .raceName(result.getRace().getName())
+                .points(result.getPoints())
+                .status(result.getStatus())
+                .lapsCompleted(result.getLapsCompleted())
+                .build();
     }
 
     private TeamSeasonResponse convertTeamSeason(DriverTeamSeason dts) {

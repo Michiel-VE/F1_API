@@ -1,8 +1,10 @@
 package be.michielve.f1_api.controllers;
 
 import be.michielve.f1_api.models.response.DriverCareerHistoryResponse;
+import be.michielve.f1_api.models.response.DriverRaceResultsResponse;
 import be.michielve.f1_api.models.response.DriverResponse;
 import be.michielve.f1_api.models.response.DriverWithSeasonsResponse;
+import be.michielve.f1_api.services.DriverRaceResultsService;
 import be.michielve.f1_api.services.DriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/")
@@ -20,6 +23,7 @@ import java.util.List;
 public class DriverController {
 
         private final DriverService driverService;
+        private final DriverRaceResultsService driverRaceResultsService;
 
         @GetMapping("drivers")
         public ResponseEntity<List<DriverWithSeasonsResponse>> getAllDrivers() {
@@ -61,5 +65,10 @@ public class DriverController {
                 return ResponseEntity.ok(careerHistory);
         }
 
-        // TODO: Create drivers/name te get history of the driver
+        @GetMapping("drivers/{id}/race-results")
+        public ResponseEntity<DriverRaceResultsResponse> getDriverRaceResults(
+                        @PathVariable UUID id,
+                        @RequestParam("season") String season) {
+                return ResponseEntity.ok(driverRaceResultsService.getDriverRaceResults(id, season));
+        }
 }
