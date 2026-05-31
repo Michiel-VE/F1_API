@@ -5,14 +5,16 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "users", schema = "f1_api")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@ToString
 public class User extends BaseEntry {
+    
     @Column
     private String provider;
 
@@ -23,6 +25,7 @@ public class User extends BaseEntry {
     private String email;
 
     @Column
+    @ToString.Exclude
     private String password;
 
     @Column
@@ -34,4 +37,16 @@ public class User extends BaseEntry {
 
     @Column(length = 2048)
     private String picture;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User user)) return false;
+        return getId() != null && getId().equals(user.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

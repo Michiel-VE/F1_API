@@ -1,18 +1,20 @@
 package be.michielve.f1_api.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
-@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "team", schema = "f1_api")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@ToString
 public class Team extends BaseEntry {
 
     @Column(nullable = false, unique = true)
@@ -28,6 +30,19 @@ public class Team extends BaseEntry {
     private String base;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @JsonIgnoreProperties("team")
     private List<DriverTeamSeason> driverTeamSeasons;
-}
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Team team)) return false;
+        return getId() != null && getId().equals(team.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+}
