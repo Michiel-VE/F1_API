@@ -14,31 +14,21 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class RaceUpdateLambdaHandler implements RequestHandler<Object, String> {
 
     private static final Logger logger = LoggerFactory.getLogger(RaceUpdateLambdaHandler.class);
-    private static final ConfigurableApplicationContext context;
-    private static final F1Scheduler f1Scheduler;
 
     static {
-        try {
-            DotenvInitializer.init();
-            
-            // For background tasks, we override the 'servlet' setting to 'none'
-            context = new SpringApplicationBuilder(F1ApiApplication.class)
-                    .web(WebApplicationType.NONE)
-                    .run();
-            
-            f1Scheduler = context.getBean(F1Scheduler.class);
-            
-            logger.info("RaceUpdateLambdaHandler initialized successfully.");
-        } catch (Exception e) {
-            logger.error("Critical error during static initialization of RaceUpdateLambdaHandler", e);
-            throw new RuntimeException("RaceUpdateLambdaHandler initialization failed", e);
-        }
+        DotenvInitializer.init();
     }
 
     @Override
     public String handleRequest(Object input, Context lambdaContext) {
         logger.info("Starting manual Race Season update...");
-        try {
+        
+        System.setProperty("spring.main.web-application-type", "none");
+        try (ConfigurableApplicationContext context = new SpringApplicationBuilder(F1ApiApplication.class)
+                .web(WebApplicationType.NONE)
+                .run()) {
+            
+            F1Scheduler f1Scheduler = context.getBean(F1Scheduler.class);
             f1Scheduler.updateRacesSeason();
             return "Successfully updated races.";
         } catch (Exception e) {

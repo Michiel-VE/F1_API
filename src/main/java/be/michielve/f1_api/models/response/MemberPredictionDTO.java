@@ -11,5 +11,5 @@ public class MemberPredictionDTO {
     private UUID userId;
     private String username;
     private String picture;
-    private List<String> predictedTeamNames; 
+    private List<String> predictedTeamIds;
 }

@@ -12,4 +12,6 @@ public class PoolSummaryResponse {
     private UUID id;
     private String name;
     private int memberCount;
+    private UUID creatorId;
+    private String inviteCode;
 }

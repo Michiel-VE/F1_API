@@ -21,11 +21,12 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -47,11 +48,6 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                String baseUrl = System.getenv("BASE_URL");
-                String loginEndpoint = (baseUrl != null && !baseUrl.isEmpty())
-                                ? baseUrl + "/oauth2/authorization/google"
-                                : "/oauth2/authorization/google";
-
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .csrf(AbstractHttpConfigurer::disable)
@@ -59,14 +55,14 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .exceptionHandling(exceptions -> exceptions
                                                 .defaultAuthenticationEntryPointFor(
-                                                                new LoginUrlAuthenticationEntryPoint(loginEndpoint),
-                                                                request -> request.getServletPath()
-                                                                                .startsWith("/api/v1/")))
+                                                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                                                request -> request.getServletPath().startsWith("/api/v1/")))
                                 .authorizeHttpRequests(authz -> authz
                                                 .requestMatchers(
                                                                 "/api/v1/auth/login",
                                                                 "/api/v1/auth/register",
-                                                                "/api/v1/auth/logout")
+                                                                "/api/v1/auth/logout",
+                                                                "/error")
                                                 .permitAll()
                                                 .requestMatchers(
                                                                 "/api/v1/profile",
@@ -76,6 +72,7 @@ public class SecurityConfig {
                                                 .anyRequest().permitAll())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .authorizationEndpoint(authorization -> authorization
+                                                                .baseUri("/oauth2/authorization")
                                                                 .authorizationRequestRepository(
                                                                                 httpCookieOAuth2AuthorizationRequestRepository))
                                                 .clientRegistrationRepository(clientRegistrationRepository())
@@ -86,6 +83,25 @@ public class SecurityConfig {
                                                                                 : "") + "/login?error")
                                                 .redirectionEndpoint(redirection -> redirection
                                                                 .baseUri("/login/oauth2/code/*")))
+                                .logout(logout -> logout
+                                                .logoutUrl("/api/v1/auth/logout")
+                                                .addLogoutHandler((request, response, authentication) -> {
+                                                        boolean isProduction = "prod".equalsIgnoreCase(System.getenv("SPRING_PROFILES_ACTIVE")) 
+                                                                || (System.getenv("BASE_URL") != null && System.getenv("BASE_URL").contains("michielve.be"));
+                                                        
+                                                        org.springframework.http.ResponseCookie deleteCookie = org.springframework.http.ResponseCookie.from("jwt", "")
+                                                                        .httpOnly(true)
+                                                                        .secure(isProduction)
+                                                                        .path("/")
+                                                                        .maxAge(0)
+                                                                        .sameSite("Lax")
+                                                                        .domain(isProduction ? "michielve.be" : null)
+                                                                        .build();
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, deleteCookie.toString());
+                                                })
+                                                .logoutSuccessHandler((request, response, authentication) -> {
+                                                        response.setStatus(HttpStatus.OK.value());
+                                                }))
                                 .userDetailsService(userService)
                                 .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 
@@ -101,7 +117,6 @@ public class SecurityConfig {
                 String forcedRedirectUri = System
                                 .getenv("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI");
 
-                // Fallback for local development
                 String redirectUri = (forcedRedirectUri != null && !forcedRedirectUri.isEmpty())
                                 ? forcedRedirectUri
                                 : "{baseUrl}/login/oauth2/code/{registrationId}";
@@ -131,25 +146,27 @@ public class SecurityConfig {
                                                 "https://f1.michielve.be",
                                                 "https://f1-api.michielve.be"));
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+                configuration.setExposedHeaders(List.of("Authorization"));
                 configuration.setAllowCredentials(true);
+                
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;
-        }
-
-        @Bean
-        public JwtFilter jwtFilter() {
-                return new JwtFilter(jwtService, userService);
-        }
-
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
-
-        @Bean
-        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-                return config.getAuthenticationManager();
-        }
+            }
+    
+            @Bean
+            public JwtFilter jwtFilter() {
+                    return new JwtFilter(jwtService);
+            }
+    
+            @Bean
+            public PasswordEncoder passwordEncoder() {
+                    return new BCryptPasswordEncoder();
+            }
+    
+            @Bean
+            public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+                    return config.getAuthenticationManager();
+            }
 }

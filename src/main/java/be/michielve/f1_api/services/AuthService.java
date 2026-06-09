@@ -5,12 +5,12 @@ import be.michielve.f1_api.models.User;
 import be.michielve.f1_api.models.request.LoginRequest;
 import be.michielve.f1_api.models.request.RegisterRequest;
 import be.michielve.f1_api.repositories.UserRepository;
+import be.michielve.f1_api.security.CustomUserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -54,13 +54,13 @@ public class AuthService {
     }
 
     public String loginAndGetCookieHeader(LoginRequest request, boolean isProduction, long expirationMs) {
-        UserDetails user = (UserDetails) authenticationManager.authenticate(
+        CustomUserPrincipal principal = (CustomUserPrincipal) authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()))
                 .getPrincipal();
 
-        String token = jwtService.generateToken(user.getUsername());
+        String token = jwtService.generateToken(principal);
         return buildCookieHeader(token, isProduction, (int) (expirationMs / 1000));
     }
 

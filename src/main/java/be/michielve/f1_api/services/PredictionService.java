@@ -29,234 +29,241 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PredictionService {
 
-    private final PoolRepository poolRepository;
-    private final TeamPredictionRepository teamPredictionRepository;
-    private final TeamRepository teamRepository;
-    private final UserRepository userRepository;
+        private final PoolRepository poolRepository;
+        private final TeamPredictionRepository teamPredictionRepository;
+        private final TeamRepository teamRepository;
+        private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
-    public SavedPredictionResponse getPersonalTeamPrediction(UUID userId) {
-        TeamPrediction prediction = teamPredictionRepository.findPersonalByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("No personal team prediction found for this user"));
+        @Transactional(readOnly = true)
+        public SavedPredictionResponse getPersonalTeamPrediction(UUID userId) {
+                TeamPrediction prediction = teamPredictionRepository.findPersonalByUserId(userId)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "No personal team prediction found for this user"));
 
-        List<String> teamIds = prediction.getPredictedTeams().stream()
-                .map(team -> team.getId().toString())
-                .toList();
+                List<String> teamIds = prediction.getPredictedTeams().stream()
+                                .map(team -> team.getId().toString())
+                                .toList();
 
-        return SavedPredictionResponse.builder()
-                .predictedTeams(teamIds)
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public SavedPredictionResponse getPoolTeamPrediction(UUID userId, UUID poolId) {
-        Pool pool = poolRepository.findById(poolId)
-                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
-
-        boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
-        if (!isMember) {
-            throw new AccessDeniedException("Access denied. You are not a member of this pool");
+                return SavedPredictionResponse.builder()
+                                .predictedTeams(teamIds)
+                                .build();
         }
 
-        TeamPrediction prediction = teamPredictionRepository.findByUserIdAndPoolId(userId, poolId)
-                .orElseThrow(() -> new IllegalArgumentException("No team prediction found for this pool"));
+        @Transactional(readOnly = true)
+        public SavedPredictionResponse getPoolTeamPrediction(UUID userId, UUID poolId) {
+                Pool pool = poolRepository.findById(poolId)
+                                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
 
-        List<String> teamIds = prediction.getPredictedTeams().stream()
-                .map(team -> team.getId().toString())
-                .toList();
+                boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
+                if (!isMember) {
+                        throw new AccessDeniedException("Access denied. You are not a member of this pool");
+                }
 
-        return SavedPredictionResponse.builder()
-                .predictedTeams(teamIds)
-                .build();
-    }
+                TeamPrediction prediction = teamPredictionRepository.findByUserIdAndPoolId(userId, poolId)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "No team prediction found for this pool"));
 
-    @Transactional
-    public void createTeamPrediction(UUID userId, CreateSeasonPredictionRequest request) {
-        Pool pool = null;
-        if (request.getPoolId() != null) {
-            pool = poolRepository.findById(request.getPoolId())
-                    .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
+                List<String> teamIds = prediction.getPredictedTeams().stream()
+                                .map(team -> team.getId().toString())
+                                .toList();
 
-            boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
-            if (!isMember) {
-                throw new AccessDeniedException("You are not part of this pool");
-            }
+                return SavedPredictionResponse.builder()
+                                .predictedTeams(teamIds)
+                                .build();
         }
 
-        Optional<TeamPrediction> existing = request.getPoolId() == null
-                ? teamPredictionRepository.findPersonalByUserId(userId)
-                : teamPredictionRepository.findByUserIdAndPoolId(userId, request.getPoolId());
-        if (existing.isPresent()) {
-            throw new IllegalStateException("You have already submitted a prediction for this context");
+        @Transactional
+        public void createTeamPrediction(UUID userId, CreateSeasonPredictionRequest request) {
+                Pool pool = null;
+                if (request.getPoolId() != null) {
+                        pool = poolRepository.findById(request.getPoolId())
+                                        .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
+
+                        boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
+                        if (!isMember) {
+                                throw new AccessDeniedException("You are not part of this pool");
+                        }
+                }
+
+                Optional<TeamPrediction> existing = request.getPoolId() == null
+                                ? teamPredictionRepository.findPersonalByUserId(userId)
+                                : teamPredictionRepository.findByUserIdAndPoolId(userId, request.getPoolId());
+                if (existing.isPresent()) {
+                        throw new IllegalStateException("You have already submitted a prediction for this context");
+                }
+
+                // FIX: findAllById does not preserve input order — re-sort to match request
+                // order
+                List<UUID> orderedIds = request.getPredictedTeams();
+                Map<UUID, Team> teamMap = teamRepository.findAllById(orderedIds).stream()
+                                .collect(Collectors.toMap(Team::getId, t -> t));
+                List<Team> teams = orderedIds.stream()
+                                .map(teamMap::get)
+                                .filter(t -> t != null)
+                                .toList();
+
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+                Timestamp now = Timestamp.from(Instant.now());
+                TeamPrediction prediction = TeamPrediction.builder()
+                                .user(user)
+                                .pool(pool)
+                                .predictedTeams(teams)
+                                .created_at(now)
+                                .updated_at(now)
+                                .build();
+
+                teamPredictionRepository.save(prediction);
         }
 
-        // FIX: findAllById does not preserve input order — re-sort to match request order
-        List<UUID> orderedIds = request.getPredictedTeams();
-        Map<UUID, Team> teamMap = teamRepository.findAllById(orderedIds).stream()
-                .collect(Collectors.toMap(Team::getId, t -> t));
-        List<Team> teams = orderedIds.stream()
-                .map(teamMap::get)
-                .filter(t -> t != null)
-                .toList();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        Timestamp now = Timestamp.from(Instant.now());
-        TeamPrediction prediction = TeamPrediction.builder()
-                .user(user)
-                .pool(pool)
-                .predictedTeams(teams)
-                .created_at(now)
-                .updated_at(now)
-                .build();
-
-        teamPredictionRepository.save(prediction);
-    }
-
-    @Transactional(readOnly = true)
-    public List<PoolSummaryResponse> getUserPools(UUID userId) {
-        return poolRepository.findPoolsByUserId(userId).stream()
-                .map(pool -> PoolSummaryResponse.builder()
-                        .id(pool.getId())
-                        .name(pool.getName())
-                        .memberCount(pool.getMembers().size())
-                        .build())
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public PoolDetailsResponse getPoolDetails(UUID userId, UUID poolId) {
-        Pool pool = poolRepository.findById(poolId)
-                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
-
-        boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
-        if (!isMember) {
-            throw new AccessDeniedException("Access denied to this pool dashboard");
+        @Transactional(readOnly = true)
+        public List<PoolSummaryResponse> getUserPools(UUID userId) {
+                return poolRepository.findPoolsByUserId(userId).stream()
+                                .map(pool -> PoolSummaryResponse.builder()
+                                                .id(pool.getId())
+                                                .name(pool.getName())
+                                                .memberCount(pool.getMembers().size())
+                                                .creatorId(pool.getCreator().getId())
+                                                .inviteCode(pool.getInviteCode())
+                                                .build())
+                                .toList();
         }
 
-        List<TeamPrediction> predictions = teamPredictionRepository.findByPoolId(poolId);
+        @Transactional(readOnly = true)
+        public PoolDetailsResponse getPoolDetails(UUID userId, UUID poolId) {
+                Pool pool = poolRepository.findById(poolId)
+                                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
 
-        List<MemberPredictionDTO> leaderBoard = pool.getMembers().stream().map(member -> {
-            Optional<TeamPrediction> pred = predictions.stream()
-                    .filter(p -> p.getUser().getId().equals(member.getId()))
-                    .findFirst();
+                boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
+                if (!isMember) {
+                        throw new AccessDeniedException("Access denied to this pool dashboard");
+                }
 
-            List<String> teamNames = pred.map(teamPrediction -> teamPrediction.getPredictedTeams().stream()
-                    .map(Team::getName)
-                    .toList()).orElse(List.of());
+                List<TeamPrediction> predictions = teamPredictionRepository.findByPoolId(poolId);
 
-            return MemberPredictionDTO.builder()
-                    .userId(member.getId())
-                    .username(member.getName())
-                    .picture(member.getPicture())
-                    .predictedTeamNames(teamNames)
-                    .build();
-        }).toList();
+                List<MemberPredictionDTO> leaderBoard = pool.getMembers().stream().map(member -> {
+                        Optional<TeamPrediction> pred = predictions.stream()
+                                        .filter(p -> p.getUser().getId().equals(member.getId()))
+                                        .findFirst();
 
-        return PoolDetailsResponse.builder()
-                .poolId(pool.getId())
-                .poolName(pool.getName())
-                .leaderBoard(leaderBoard)
-                .build();
-    }
+                        // Changed: return IDs instead of names, preserving prediction_order
+                        List<String> teamIds = pred.map(teamPrediction -> teamPrediction.getPredictedTeams().stream()
+                                        .map(team -> team.getId().toString())
+                                        .toList()).orElse(List.of());
 
-    @Transactional(readOnly = true)
-    public PredictionStatusResponse getPredictionStatus(UUID userId) {
-        boolean hasPools = !poolRepository.findPoolsByUserId(userId).isEmpty();
-        boolean hasPersonal = teamPredictionRepository.findPersonalByUserId(userId).isPresent();
+                        return MemberPredictionDTO.builder()
+                                        .userId(member.getId())
+                                        .username(member.getName())
+                                        .picture(member.getPicture())
+                                        .predictedTeamIds(teamIds)
+                                        .build();
+                }).toList();
 
-        return PredictionStatusResponse.builder()
-                .hasPools(hasPools)
-                .hasPersonalPrediction(hasPersonal)
-                .build();
-    }
-
-    @Transactional
-    public Pool createPool(UUID userId, CreatePoolRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        Timestamp now = Timestamp.from(Instant.now());
-
-        Pool pool = Pool.builder()
-                .name(request.getName())
-                .inviteCode(inviteCode)
-                .creator(user)
-                .members(new java.util.ArrayList<>(List.of(user)))
-                .created_at(now)
-                .updated_at(now)
-                .build();
-
-        return poolRepository.save(pool);
-    }
-
-    @Transactional
-    public void leaveOrDeletePool(UUID userId, UUID poolId) {
-        Pool pool = poolRepository.findById(poolId)
-                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
-
-        boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
-        if (!isMember) {
-            throw new IllegalStateException("You are not a member of this pool");
+                return PoolDetailsResponse.builder()
+                                .poolId(pool.getId())
+                                .poolName(pool.getName())
+                                .creatorId(pool.getCreator().getId())
+                                .leaderBoard(leaderBoard)
+                                .build();
         }
 
-        if (pool.getCreator().getId().equals(userId) || pool.getMembers().size() <= 1) {
-            teamPredictionRepository.deleteByPoolId(poolId);
-            poolRepository.delete(pool);
-            return;
+        @Transactional(readOnly = true)
+        public PredictionStatusResponse getPredictionStatus(UUID userId) {
+                boolean hasPools = !poolRepository.findPoolsByUserId(userId).isEmpty();
+                boolean hasPersonal = teamPredictionRepository.findPersonalByUserId(userId).isPresent();
+
+                return PredictionStatusResponse.builder()
+                                .hasPools(hasPools)
+                                .hasPersonalPrediction(hasPersonal)
+                                .build();
         }
 
-        pool.getMembers().removeIf(member -> member.getId().equals(userId));
-        teamPredictionRepository.findByUserIdAndPoolId(userId, poolId)
-                .ifPresent(teamPredictionRepository::delete);
+        @Transactional
+        public Pool createPool(UUID userId, CreatePoolRequest request) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        poolRepository.save(pool);
-    }
+                String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                Timestamp now = Timestamp.from(Instant.now());
 
-    @Transactional
-    public void kickMemberOrDeletePool(UUID adminId, UUID poolId, UUID memberId) {
-        Pool pool = poolRepository.findById(poolId)
-                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
+                Pool pool = Pool.builder()
+                                .name(request.getName())
+                                .inviteCode(inviteCode)
+                                .creator(user)
+                                .members(new java.util.ArrayList<>(List.of(user)))
+                                .created_at(now)
+                                .updated_at(now)
+                                .build();
 
-        if (!pool.getCreator().getId().equals(adminId)) {
-            throw new AccessDeniedException("Only the pool creator can remove members");
+                return poolRepository.save(pool);
         }
 
-        if (adminId.equals(memberId) || pool.getMembers().size() <= 1) {
-            teamPredictionRepository.deleteByPoolId(poolId);
-            poolRepository.delete(pool);
-            return;
+        @Transactional
+        public void leaveOrDeletePool(UUID userId, UUID poolId) {
+                Pool pool = poolRepository.findById(poolId)
+                                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
+
+                boolean isMember = pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId));
+                if (!isMember) {
+                        throw new IllegalStateException("You are not a member of this pool");
+                }
+
+                if (pool.getCreator().getId().equals(userId) || pool.getMembers().size() <= 1) {
+                        teamPredictionRepository.deleteByPoolId(poolId);
+                        poolRepository.delete(pool);
+                        return;
+                }
+
+                pool.getMembers().removeIf(member -> member.getId().equals(userId));
+                teamPredictionRepository.findByUserIdAndPoolId(userId, poolId)
+                                .ifPresent(teamPredictionRepository::delete);
+
+                poolRepository.save(pool);
         }
 
-        boolean found = pool.getMembers().removeIf(member -> member.getId().equals(memberId));
-        if (!found) {
-            throw new IllegalArgumentException("Target user is not a member of this pool");
+        @Transactional
+        public void kickMemberOrDeletePool(UUID adminId, UUID poolId, UUID memberId) {
+                Pool pool = poolRepository.findById(poolId)
+                                .orElseThrow(() -> new IllegalArgumentException("Pool not found"));
+
+                if (!pool.getCreator().getId().equals(adminId)) {
+                        throw new AccessDeniedException("Only the pool creator can remove members");
+                }
+
+                if (adminId.equals(memberId) || pool.getMembers().size() <= 1) {
+                        teamPredictionRepository.deleteByPoolId(poolId);
+                        poolRepository.delete(pool);
+                        return;
+                }
+
+                boolean found = pool.getMembers().removeIf(member -> member.getId().equals(memberId));
+                if (!found) {
+                        throw new IllegalArgumentException("Target user is not a member of this pool");
+                }
+
+                teamPredictionRepository.findByUserIdAndPoolId(memberId, poolId)
+                                .ifPresent(teamPredictionRepository::delete);
+
+                poolRepository.save(pool);
         }
 
-        teamPredictionRepository.findByUserIdAndPoolId(memberId, poolId)
-                .ifPresent(teamPredictionRepository::delete);
+        @Transactional
+        public void joinPool(UUID userId, JoinPoolRequest request) {
+                Pool pool = poolRepository.findByInviteCode(request.getInviteCode().toUpperCase())
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid invite code"));
 
-        poolRepository.save(pool);
-    }
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-    @Transactional
-    public void joinPool(UUID userId, JoinPoolRequest request) {
-        Pool pool = poolRepository.findByInviteCode(request.getInviteCode().toUpperCase())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid invite code"));
+                if (pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId))) {
+                        throw new IllegalStateException("You are already a member of this pool");
+                }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        if (pool.getMembers().stream().anyMatch(m -> m.getId().equals(userId))) {
-            throw new IllegalStateException("You are already a member of this pool");
+                pool.getMembers().add(user);
+                poolRepository.save(pool);
         }
 
-        pool.getMembers().add(user);
-        poolRepository.save(pool);
-    }
-
-    public void createPrediction(UUID id, CreatePredictionRequest request) {
-    }
+        public void createPrediction(UUID id, CreatePredictionRequest request) {
+        }
 }

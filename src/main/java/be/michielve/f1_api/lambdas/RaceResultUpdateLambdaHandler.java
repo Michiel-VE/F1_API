@@ -14,30 +14,21 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class RaceResultUpdateLambdaHandler implements RequestHandler<Object, String> {
 
     private static final Logger logger = LoggerFactory.getLogger(RaceResultUpdateLambdaHandler.class);
-    private static final ConfigurableApplicationContext context;
-    private static final F1Scheduler scheduler;
 
     static {
-        try {
-            DotenvInitializer.init();
-            
-            context = new SpringApplicationBuilder(F1ApiApplication.class)
-                    .web(WebApplicationType.NONE)
-                    .run();
-            
-            scheduler = context.getBean(F1Scheduler.class);
-            
-            logger.info("RaceResultUpdateLambdaHandler initialized successfully.");
-        } catch (Exception e) {
-            logger.error("Failed to initialize RaceResultUpdateLambdaHandler", e);
-            throw new RuntimeException("Could not initialize Spring context", e);
-        }
+        DotenvInitializer.init();
     }
 
     @Override
     public String handleRequest(Object input, Context lambdaContext) {
         logger.info("Starting manual update for Race Results...");
-        try {
+        
+        System.setProperty("spring.main.web-application-type", "none");
+        try (ConfigurableApplicationContext context = new SpringApplicationBuilder(F1ApiApplication.class)
+                .web(WebApplicationType.NONE)
+                .run()) {
+            
+            F1Scheduler scheduler = context.getBean(F1Scheduler.class);
             scheduler.updateRaceResults();
             return "Successfully updated race results.";
         } catch (Exception e) {

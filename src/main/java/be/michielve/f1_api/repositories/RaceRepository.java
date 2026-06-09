@@ -17,9 +17,10 @@ public interface RaceRepository extends JpaRepository<Race, UUID> {
 
     @Query("""
             SELECT DISTINCT r FROM Race r
-            JOIN r.raceSeasons rs
-            JOIN rs.season s
+            LEFT JOIN FETCH r.raceSeasons rs
+            LEFT JOIN FETCH rs.season s
             WHERE s.seasonName = :seasonName
+            ORDER BY r.raceStartDate ASC NULLS LAST
             """)
     List<Race> findAllRacesBySeasonName(@Param("seasonName") String seasonName);
 

@@ -14,31 +14,21 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class DriverTeamUpdateLambdaHandler implements RequestHandler<Object, String> {
 
     private static final Logger logger = LoggerFactory.getLogger(DriverTeamUpdateLambdaHandler.class);
-    private static final ConfigurableApplicationContext context;
-    private static final F1Scheduler scheduler;
 
     static {
-        try {
-            DotenvInitializer.init();
-            
-            // For background tasks, we override the 'servlet' setting to 'none'
-            context = new SpringApplicationBuilder(F1ApiApplication.class)
-                    .web(WebApplicationType.NONE)
-                    .run();
-            
-            scheduler = context.getBean(F1Scheduler.class);
-            
-            logger.info("DriverTeamUpdateLambdaHandler initialized successfully.");
-        } catch (Exception e) {
-            logger.error("Failed to initialize DriverTeamUpdateLambdaHandler", e);
-            throw new RuntimeException("Could not initialize Spring context", e);
-        }
+        DotenvInitializer.init();
     }
 
     @Override
     public String handleRequest(Object input, Context lambdaContext) {
         logger.info("Starting manual update for Drivers and Teams...");
-        try {
+        
+        System.setProperty("spring.main.web-application-type", "none");
+        try (ConfigurableApplicationContext context = new SpringApplicationBuilder(F1ApiApplication.class)
+                .web(WebApplicationType.NONE)
+                .run()) {
+            
+            F1Scheduler scheduler = context.getBean(F1Scheduler.class);
             scheduler.updateDriverAndTeam();
             return "Successfully updated Drivers and teams.";
         } catch (Exception e) {

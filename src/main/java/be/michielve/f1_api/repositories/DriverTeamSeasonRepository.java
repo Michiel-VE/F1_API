@@ -42,6 +42,21 @@ public interface DriverTeamSeasonRepository extends JpaRepository<DriverTeamSeas
             @Param("driverLastName") String driverLastName,
             @Param("seasonName") String seasonName);
 
+    // Optimized bulk query to replace the iterative N+1 loop completely
+    @Query(value = """
+            WITH RankedResults AS (
+                SELECT
+                    dts.id AS dts_id,
+                    ROW_NUMBER() OVER (PARTITION BY dts.season_id ORDER BY dts.points DESC) AS position
+                FROM
+                    f1_api.driver_team_season dts
+            )
+            SELECT rr.position
+            FROM RankedResults rr
+            WHERE rr.dts_id = :dtsId
+            """, nativeQuery = true)
+    Integer findDriverPositionByDtsId(@Param("dtsId") UUID dtsId);
+
     @Query(value = """
             SELECT
                 t.id,
@@ -63,7 +78,7 @@ public interface DriverTeamSeasonRepository extends JpaRepository<DriverTeamSeas
                 t.base,
                 t.created_at
             ORDER BY total_points DESC;
-                        """, nativeQuery = true)
+                                """, nativeQuery = true)
     List<TeamWithPoints> findAllTeamsBySeasonName(@Param("seasonName") String seasonName);
 
     List<DriverTeamSeason> findAllBySeasonId(UUID seasonId);

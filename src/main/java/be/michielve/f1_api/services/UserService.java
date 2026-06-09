@@ -2,13 +2,13 @@ package be.michielve.f1_api.services;
 
 import be.michielve.f1_api.models.User;
 import be.michielve.f1_api.repositories.UserRepository;
+import be.michielve.f1_api.security.CustomUserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Optional;
 
 @Service
@@ -27,10 +27,11 @@ public class UserService implements UserDetailsService {
             password = "{noop}oauth2user";
         }
 
-        return new org.springframework.security.core.userdetails.User(
+        return new CustomUserPrincipal(
+                user.getId(),
                 user.getEmail(),
                 password,
-                new ArrayList<>()
+                user.getRole() != null ? user.getRole().name() : "USER"
         );
     }
 

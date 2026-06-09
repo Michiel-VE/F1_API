@@ -35,7 +35,19 @@ Write-Host "==> Running Terraform..." -ForegroundColor Cyan
 
 $env:TF_VAR_image_tag = $imageTag
 Set-Location infra
+
+# Execute Terraform
 terraform apply -auto-approve
+
+# Immediately capture the exit code before running any other commands
+$tfExitCode = $LASTEXITCODE
+
+# Safely return to the parent directory
 Set-Location ..
+
+# Evaluate the captured Terraform exit status
+if ($tfExitCode -ne 0) { 
+    throw "Terraform apply failed with exit code $tfExitCode" 
+}
 
 Write-Host "==> Deploy complete!" -ForegroundColor Green

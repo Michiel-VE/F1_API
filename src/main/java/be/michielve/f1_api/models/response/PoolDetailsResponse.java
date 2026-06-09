@@ -10,5 +10,6 @@ import lombok.Data;
 public class PoolDetailsResponse {
     private UUID poolId;
     private String poolName;
+    private UUID creatorId;
     private List<MemberPredictionDTO> leaderBoard;
 }

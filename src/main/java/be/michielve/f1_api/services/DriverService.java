@@ -24,7 +24,6 @@ import java.util.Comparator;
 @RequiredArgsConstructor
 @Service
 public class DriverService {
-        // Correct way to initialize the logger
         private static final Logger logger = LoggerFactory.getLogger(DriverService.class);
 
         private final DriverRepository driverRepository;
@@ -90,8 +89,7 @@ public class DriverService {
                                                                         .orElse("N/A");
 
                                                         Integer position = driverTeamSeasonRepository
-                                                                        .findDriverPositionByLastNameAndSeason(
-                                                                                        driverName, seasonName);
+                                                                        .findDriverPositionByDtsId(teamSeason.getId());
 
                                                         String positionStr = (position != null)
                                                                         ? String.valueOf(position)
@@ -106,5 +104,4 @@ public class DriverService {
                                         return new RuntimeException("Driver not found with name: " + driverName);
                                 });
         }
-
 }

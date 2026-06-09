@@ -1,11 +1,11 @@
 package be.michielve.f1_api.services;
 
+import be.michielve.f1_api.security.CustomUserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.io.Decoders;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -13,6 +13,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -55,9 +56,11 @@ public class JwtService {
         return extractExpiration(token).before(new Date());
     }
 
-    public String generateToken(String email) {
+    public String generateToken(CustomUserPrincipal principal) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email);
+        claims.put("userId", principal.getId().toString());
+        claims.put("role", principal.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
+        return createToken(claims, principal.getUsername());
     }
 
     public String extractUsername(String token) {
@@ -69,10 +72,18 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
+    // Resolves properties cleanly out of the token payload without hitting the database
+    public CustomUserPrincipal extractPrincipal(String token) {
+        Claims claims = extractAllClaims(token);
+        String email = claims.getSubject();
+        UUID userId = UUID.fromString(claims.get("userId", String.class));
+        String role = claims.get("role", String.class);
+        return new CustomUserPrincipal(userId, email, "", role);
+    }
+
+    public boolean isTokenValid(String token) {
         try {
-            final String username = extractUsername(token);
-            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+            return !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }
@@ -81,5 +92,4 @@ public class JwtService {
     public long getExpiration() {
         return expiration;
     }
-
 }

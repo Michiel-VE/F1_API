@@ -1,37 +1,24 @@
 package be.michielve.f1_api.lambdas;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.amazonaws.serverless.exceptions.ContainerInitializationException;
+import com.amazonaws.serverless.proxy.internal.LambdaContainerHandler;
 import com.amazonaws.serverless.proxy.model.AwsProxyRequest;
 import com.amazonaws.serverless.proxy.model.AwsProxyResponse;
 import com.amazonaws.serverless.proxy.spring.SpringBootLambdaContainerHandler;
-import com.amazonaws.serverless.proxy.spring.SpringBootProxyHandlerBuilder;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-
 import be.michielve.f1_api.F1ApiApplication;
 import be.michielve.f1_api.config.DotenvInitializer;
 
 public class LambdaHandler implements RequestHandler<AwsProxyRequest, AwsProxyResponse> {
-
-    private static final Logger logger = LoggerFactory.getLogger(LambdaHandler.class);
+    
     private static final SpringBootLambdaContainerHandler<AwsProxyRequest, AwsProxyResponse> handler;
 
     static {
+        DotenvInitializer.init();
+        
         try {
-            DotenvInitializer.init();
-            
-            // The builder now internally handles the Jakarta/Spring 4 logic
-            handler = new SpringBootProxyHandlerBuilder<AwsProxyRequest>()
-                    .defaultProxy()
-                    .servletApplication()
-                    .springBootApplication(F1ApiApplication.class)
-                    .buildAndInitialize();
-                    
-        } catch (ContainerInitializationException e) {
-            logger.error("Spring Boot initialization failed", e);
+            handler = SpringBootLambdaContainerHandler.getAwsProxyHandler(F1ApiApplication.class);
+        } catch (Exception e) {
             throw new RuntimeException("Could not initialize Spring Boot application", e);
         }
     }

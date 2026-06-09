@@ -1,6 +1,7 @@
 package be.michielve.f1_api.security.handlers;
 
 import be.michielve.f1_api.repositories.HttpCookieOAuth2AuthorizationRequestRepository;
+import be.michielve.f1_api.security.CustomUserPrincipal;
 import be.michielve.f1_api.services.AuthService;
 import be.michielve.f1_api.services.JwtService;
 import jakarta.servlet.ServletException;
@@ -52,7 +53,6 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                     .map(Cookie::getValue)
                     .orElse("/");
 
-            // Stricter open redirect fix
             final String finalReturnUrl = (cookieReturnUrl.matches("^/[^/].*") || cookieReturnUrl.equals("/"))
                     ? cookieReturnUrl
                     : "/";
@@ -62,7 +62,15 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
 
             authService.findOrCreateUser(provider, providerId, oauth2User.getAttributes())
                     .ifPresentOrElse(user -> {
-                        String token = jwtService.generateToken(user.getEmail());
+                        // Create the principal directly from the database model context fields
+                        CustomUserPrincipal principal = new CustomUserPrincipal(
+                                user.getId(),
+                                user.getEmail(),
+                                "{noop}oauth2user",
+                                user.getRole() != null ? user.getRole().name() : "USER"
+                        );
+
+                        String token = jwtService.generateToken(principal);
 
                         boolean isProduction = envFrontendUrl != null && !envFrontendUrl.isEmpty();
                         String cookieHeader = AuthService.buildCookieHeader(
