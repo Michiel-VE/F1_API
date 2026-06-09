@@ -1,1 +1,0 @@
-ALTER TABLE f1_api.users ADD COLUMN picture VARCHAR(2048);
