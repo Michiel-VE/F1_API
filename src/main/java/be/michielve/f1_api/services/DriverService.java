@@ -2,73 +2,45 @@ package be.michielve.f1_api.services;
 
 import be.michielve.f1_api.convertors.DriverConverter;
 import be.michielve.f1_api.models.Driver;
-import be.michielve.f1_api.models.Season;
-import be.michielve.f1_api.models.Team;
 import be.michielve.f1_api.models.response.DriverCareerHistoryResponse;
 import be.michielve.f1_api.models.response.DriverResponse;
 import be.michielve.f1_api.models.response.DriverWithSeasonsResponse;
 import be.michielve.f1_api.repositories.DriverRepository;
 import be.michielve.f1_api.repositories.DriverTeamSeasonRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Year;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.Comparator;
 
 @RequiredArgsConstructor
 @Service
 public class DriverService {
-        private static final Logger logger = LoggerFactory.getLogger(DriverService.class);
-
         private final DriverRepository driverRepository;
         private final DriverTeamSeasonRepository driverTeamSeasonRepository;
         private final DriverConverter driverConverter;
 
-        public List<DriverWithSeasonsResponse> getAllDrivers() {
-                logger.info("Attempting to retrieve all drivers with their teams and seasons.");
-                List<DriverWithSeasonsResponse> drivers = driverRepository
-                                .findAllWithTeamsAndSeasons(String.valueOf(Year.now().getValue())).stream()
-                                .map(driverConverter::driverResponseWithSeasonsConvert)
-                                .collect(Collectors.toList());
-                logger.info("Successfully retrieved {} drivers.", drivers.size());
-                return drivers;
-        }
-
+        @Cacheable(cacheResolver = "driverCacheResolver", key = "'season:' + #season")
         public List<DriverWithSeasonsResponse> getAllDriversForSeason(String season) {
-                logger.info("Attempting to retrieve all drivers for season: {}", season);
-                List<DriverWithSeasonsResponse> drivers = driverRepository.findAllBySeasonName(season).stream()
+                return driverRepository.findAllBySeasonName(season).stream()
                                 .map(driverConverter::driverResponseWithSeasonsConvert)
                                 .collect(Collectors.toList());
-                logger.info("Successfully retrieved {} drivers for season: {}", drivers.size(), season);
-                return drivers;
         }
 
         public List<DriverResponse> getDriverDetails(int permanentNumber) {
-                logger.info("Attempting to find drivers with permanent number: {}", permanentNumber);
                 List<Driver> drivers = driverRepository.findByPermanentNumber(permanentNumber);
-
-                if (drivers.isEmpty()) {
-                        logger.error("No drivers found with permanent number: {}", permanentNumber);
-                        throw new RuntimeException("No drivers found with permanentNumber: " + permanentNumber);
-                }
-
-                return drivers.stream()
-                                .map(driverConverter::driverResponseConvert)
-                                .toList();
+                if (drivers.isEmpty())
+                        throw new RuntimeException("No drivers found with number: " + permanentNumber);
+                return drivers.stream().map(driverConverter::driverResponseConvert).collect(Collectors.toList());
         }
 
         @Transactional(readOnly = true)
         public List<DriverCareerHistoryResponse> getDriverCareerHistory(String driverName) {
-                logger.info("Attempting to find career history for driver: {}", driverName);
-
-                return driverRepository
-                                .findByLastnameIgnoreCase(driverName)
+                return driverRepository.findByLastnameIgnoreCase(driverName)
                                 .map(driver -> driver.getDriverTeamSeasons().stream()
                                                 .sorted(Comparator.comparing(
                                                                 (teamSeason) -> teamSeason.getSeason() != null
@@ -77,31 +49,20 @@ public class DriverService {
                                                                 Comparator.reverseOrder()))
                                                 .map(teamSeason -> {
                                                         String seasonName = Optional.ofNullable(teamSeason.getSeason())
-                                                                        .map(Season::getSeasonName)
-                                                                        .orElse("Unknown Season");
-
+                                                                        .map(season -> season.getSeasonName())
+                                                                        .orElse("Unknown");
                                                         String teamName = Optional.ofNullable(teamSeason.getTeam())
-                                                                        .map(Team::getName)
-                                                                        .orElse("Unknown Team");
-
+                                                                        .map(team -> team.getName())
+                                                                        .orElse("Unknown");
                                                         String points = Optional.ofNullable(teamSeason.getPoints())
-                                                                        .map(Object::toString)
+                                                                        .map(p -> p.toString())
                                                                         .orElse("N/A");
-
-                                                        Integer position = driverTeamSeasonRepository
+                                                        Integer pos = driverTeamSeasonRepository
                                                                         .findDriverPositionByDtsId(teamSeason.getId());
-
-                                                        String positionStr = (position != null)
-                                                                        ? String.valueOf(position)
-                                                                        : "N/A";
-
                                                         return new DriverCareerHistoryResponse(seasonName, teamName,
-                                                                        positionStr, points);
-                                                })
-                                                .collect(Collectors.toList()))
-                                .orElseThrow(() -> {
-                                        logger.error("Driver not found with name: {}", driverName);
-                                        return new RuntimeException("Driver not found with name: " + driverName);
-                                });
+                                                                        pos != null ? String.valueOf(pos) : "N/A",
+                                                                        points);
+                                                }).collect(Collectors.toList()))
+                                .orElseThrow(() -> new RuntimeException("Driver not found: " + driverName));
         }
 }

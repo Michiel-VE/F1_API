@@ -9,6 +9,7 @@ import be.michielve.f1_api.repositories.DriverRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class DriverRaceResultsService {
     private final DriverRepository driverRepository;
     private final DriverConverter driverConverter;
 
+    @Cacheable(cacheResolver = "resultsCacheResolver", key = "'season:' + #season + ':' + #id")
     @Transactional(readOnly = true)
     public DriverRaceResultsResponse getDriverRaceResults(UUID id, String season) {
         logger.info("Retrieving race results for driver: {} in season: {}", id, season);

@@ -14,23 +14,29 @@ public class F1Scheduler {
     private final ScrapedDriverService scrapedDriverService;
     private final ScrapedTeamService scrapedTeamService;
     private final ScrapedRaceResultService scrapedRaceResultService;
+    private final CacheEvictionService cacheEvictionService;
 
     private final String currentYear = String.valueOf(Year.now().getValue());
 
     public void updateRacesSeason() {
         scrapedRaceService.updateRaceFromScraperForSeason(currentYear);
+        cacheEvictionService.evictAndStamp("races");
     }
 
     public void updateCurrentDriversAndPoints() {
         scrapedStandingService.updateDriverAndPointsFromScraperForSeason(currentYear);
+        cacheEvictionService.evictAndStamp("drivers", "results");
     }
 
     public void updateDriverAndTeam() {
         scrapedDriverService.updateDriversFromScraper();
         scrapedTeamService.updateTeamsFromScraper();
+        
+        cacheEvictionService.evictAndStamp("drivers", "teams");
     }
 
     public void updateRaceResults() {
         scrapedRaceResultService.updatePendingRaceResults(currentYear);
+        cacheEvictionService.evictAndStamp("results");
     }
 }

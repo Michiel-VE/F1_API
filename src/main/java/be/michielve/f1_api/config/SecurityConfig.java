@@ -12,7 +12,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,13 +49,14 @@ public class SecurityConfig {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(AbstractHttpConfigurer::disable)
+                                .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .exceptionHandling(exceptions -> exceptions
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                                                request -> request.getServletPath().startsWith("/api/v1/")))
+                                                                request -> request.getServletPath()
+                                                                                .startsWith("/api/v1/")))
                                 .authorizeHttpRequests(authz -> authz
                                                 .requestMatchers(
                                                                 "/api/v1/auth/login",
@@ -86,10 +86,14 @@ public class SecurityConfig {
                                 .logout(logout -> logout
                                                 .logoutUrl("/api/v1/auth/logout")
                                                 .addLogoutHandler((request, response, authentication) -> {
-                                                        boolean isProduction = "prod".equalsIgnoreCase(System.getenv("SPRING_PROFILES_ACTIVE")) 
-                                                                || (System.getenv("BASE_URL") != null && System.getenv("BASE_URL").contains("michielve.be"));
-                                                        
-                                                        org.springframework.http.ResponseCookie deleteCookie = org.springframework.http.ResponseCookie.from("jwt", "")
+                                                        boolean isProduction = "prod".equalsIgnoreCase(
+                                                                        System.getenv("SPRING_PROFILES_ACTIVE"))
+                                                                        || (System.getenv("BASE_URL") != null && System
+                                                                                        .getenv("BASE_URL")
+                                                                                        .contains("michielve.be"));
+
+                                                        org.springframework.http.ResponseCookie deleteCookie = org.springframework.http.ResponseCookie
+                                                                        .from("jwt", "")
                                                                         .httpOnly(true)
                                                                         .secure(isProduction)
                                                                         .path("/")
@@ -97,7 +101,9 @@ public class SecurityConfig {
                                                                         .sameSite("Lax")
                                                                         .domain(isProduction ? "michielve.be" : null)
                                                                         .build();
-                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, deleteCookie.toString());
+                                                        response.addHeader(
+                                                                        org.springframework.http.HttpHeaders.SET_COOKIE,
+                                                                        deleteCookie.toString());
                                                 })
                                                 .logoutSuccessHandler((request, response, authentication) -> {
                                                         response.setStatus(HttpStatus.OK.value());
@@ -146,27 +152,28 @@ public class SecurityConfig {
                                                 "https://f1.michielve.be",
                                                 "https://f1-api.michielve.be"));
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+                configuration.setAllowedHeaders(
+                                List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
                 configuration.setExposedHeaders(List.of("Authorization"));
                 configuration.setAllowCredentials(true);
-                
+
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;
-            }
-    
-            @Bean
-            public JwtFilter jwtFilter() {
-                    return new JwtFilter(jwtService);
-            }
-    
-            @Bean
-            public PasswordEncoder passwordEncoder() {
-                    return new BCryptPasswordEncoder();
-            }
-    
-            @Bean
-            public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-                    return config.getAuthenticationManager();
-            }
+        }
+
+        @Bean
+        public JwtFilter jwtFilter() {
+                return new JwtFilter(jwtService);
+        }
+
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
+
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+                return config.getAuthenticationManager();
+        }
 }

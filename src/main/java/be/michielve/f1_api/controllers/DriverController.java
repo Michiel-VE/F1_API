@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +28,7 @@ public class DriverController {
 
         @GetMapping("drivers")
         public ResponseEntity<List<DriverWithSeasonsResponse>> getAllDrivers() {
-                return ResponseEntity.ok(driverService.getAllDrivers());
+                return ResponseEntity.ok(driverService.getAllDriversForSeason(String.valueOf(Year.now().getValue())));
         }
 
         @GetMapping("drivers/{season}")

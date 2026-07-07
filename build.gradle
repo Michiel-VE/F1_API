@@ -30,22 +30,22 @@ dependencies {
 
     // Database & Flyway
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
-    // Force specific netty version to fix netty-codec-http vulnerabilities
     implementation 'io.netty:netty-codec-http:4.2.13.Final'
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.postgresql:postgresql:42.7.5'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-71:3.15.2'
 
+    // Caching
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // AWS Lambda
     implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
-    // Force specific tomcat-embed-core version to fix Apache Tomcat vulnerabilities
     implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.22'
     implementation 'com.amazonaws:aws-lambda-java-events:3.15.0'
     implementation 'com.amazonaws.serverless:aws-serverless-java-container-springboot4:3.0.0'
 
     // AWS SDK
     implementation platform('software.amazon.awssdk:bom:2.30.13')
-    // Force specific tomcat-embed-core version to fix Apache Tomcat vulnerabilities
     implementation 'software.amazon.awssdk:secretsmanager'
 
     // Security & JWT

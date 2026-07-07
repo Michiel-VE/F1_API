@@ -9,6 +9,7 @@ import be.michielve.f1_api.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class TeamService {
     private final TeamConverter teamConverter;
     private final DriverTeamSeasonConverter driverTeamSeasonConverter;
 
+    @Cacheable(cacheResolver = "teamCacheResolver", key = "'season:' + #season")
     public List<TeamWithPointsResponse> getAllTeamsForSeason(String season) {
         logger.info("Fetching all teams for season: {}", season);
         List<TeamWithPointsResponse> teams = driverTeamSeasonRepository.findAllTeamsBySeasonName(season).stream()

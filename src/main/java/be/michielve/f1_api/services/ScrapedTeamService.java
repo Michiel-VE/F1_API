@@ -1,9 +1,12 @@
 package be.michielve.f1_api.services;
 
-import be.michielve.f1_api.models.Team;
-import be.michielve.f1_api.repositories.TeamRepository;
-import be.michielve.f1_api.utils.Helpers;
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -12,11 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import be.michielve.f1_api.models.Team;
+import be.michielve.f1_api.repositories.TeamRepository;
+import be.michielve.f1_api.utils.Helpers;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -96,35 +98,39 @@ public class ScrapedTeamService {
 
     public void updateTeamsFromScraper() {
         List<Team> scrapedTeams = scrapeF1Teams();
-
         for (Team scrapedTeam : scrapedTeams) {
-            // Change the repository call to return a List to avoid the crash
             List<Team> existingTeams = teamRepository.findAllByShortName(scrapedTeam.getShortName());
 
             if (existingTeams.isEmpty()) {
                 teamRepository.save(scrapedTeam);
-                System.out.println("Saved new team: " + scrapedTeam.getName());
+                logger.info("Saved new team: {}", scrapedTeam.getName());
             } else {
-                // Take the first one if multiple exist (to resolve the 2 results error)
                 Team teamToUpdate = existingTeams.get(0);
 
-                teamToUpdate.setName(scrapedTeam.getName());
-                teamToUpdate.setBase(scrapedTeam.getBase());
-                teamToUpdate.setCountry(scrapedTeam.getCountry());
-                teamToUpdate.setUpdated_at(Timestamp.from(Instant.now()));
+                // Check if data actually changed before updating
+                boolean isDifferent = !teamToUpdate.getName().equals(scrapedTeam.getName()) ||
+                        !teamToUpdate.getBase().equals(scrapedTeam.getBase()) ||
+                        !teamToUpdate.getCountry().equals(scrapedTeam.getCountry());
 
-                teamRepository.save(teamToUpdate);
-                System.out.println("Updated existing team: " + teamToUpdate.getShortName());
+                if (isDifferent) {
+                    teamToUpdate.setName(scrapedTeam.getName());
+                    teamToUpdate.setBase(scrapedTeam.getBase());
+                    teamToUpdate.setCountry(scrapedTeam.getCountry());
+                    teamToUpdate.setUpdated_at(Timestamp.from(Instant.now()));
 
-                // Optional: Delete the extra duplicates to clean your DB
+                    teamRepository.save(teamToUpdate);
+                    logger.info("Updated existing team: {}", teamToUpdate.getShortName());
+                }
+
                 if (existingTeams.size() > 1) {
                     for (int i = 1; i < existingTeams.size(); i++) {
                         teamRepository.delete(existingTeams.get(i));
                     }
-                    System.out.println("Cleaned up " + (existingTeams.size() - 1) + " duplicates for "
-                            + scrapedTeam.getShortName());
+                    logger.info("Cleaned up {} duplicates for {}", existingTeams.size() - 1,
+                            scrapedTeam.getShortName());
                 }
             }
         }
+
     }
 }

@@ -145,8 +145,7 @@ public class ScrapedStandingService {
                     .orElseThrow(() -> new RuntimeException("Driver not found: " + name));
         });
 
-        // IMPROVED TEAM LOOKUP
-        String scrapedTeamName = data.getTeam(); // e.g., "McLaren Mercedes"
+        String scrapedTeamName = data.getTeam();
         Team team = teamRepository.findAll()
                 .stream()
                 .filter(t -> scrapedTeamName.toLowerCase().contains(t.getShortName().toLowerCase()))

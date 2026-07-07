@@ -96,7 +96,7 @@ public class PredictionService {
                 // order
                 List<UUID> orderedIds = request.getPredictedTeams();
                 Map<UUID, Team> teamMap = teamRepository.findAllById(orderedIds).stream()
-                                .collect(Collectors.toMap(Team::getId, t -> t));
+                                .collect(Collectors.toMap(t -> t.getId(), t -> t));
                 List<Team> teams = orderedIds.stream()
                                 .map(teamMap::get)
                                 .filter(t -> t != null)

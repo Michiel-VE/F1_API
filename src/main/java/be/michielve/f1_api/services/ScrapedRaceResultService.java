@@ -52,7 +52,8 @@ public class ScrapedRaceResultService {
         logger.info("Syncing completed race results for {} up to current date.", year);
 
         // The repository now handles filtering out Testing events via SQL
-        Optional<Race> targetRaceOpt = raceRepository.findFirstFinishedRaceMissingResults(Timestamp.from(Instant.now()), year);
+        Optional<Race> targetRaceOpt = raceRepository.findFirstFinishedRaceMissingResults(Timestamp.from(Instant.now()),
+                year);
 
         if (targetRaceOpt.isEmpty()) {
             logger.info("All finished races for {} already have results recorded.", year);
@@ -67,7 +68,7 @@ public class ScrapedRaceResultService {
 
         List<String> resultUrls = discoverRaceResultUrls(year);
         String matchSlug = getF1WebsiteSlug(targetRace);
-        
+
         String targetUrl = resultUrls.stream()
                 .filter(url -> url.contains("/" + matchSlug + "/"))
                 .findFirst()
@@ -84,11 +85,16 @@ public class ScrapedRaceResultService {
         String country = race.getCountry().toLowerCase();
         String name = race.getName().toLowerCase();
 
-        if (name.contains("barcelona")) return "barcelona-catalunya";
-        if (country.equals("saudi arabia")) return "saudi-arabia";
-        if (country.equals("united states") || country.equals("usa")) return "usa";
-        if (country.equals("great britain")) return "great-britain";
-        if (country.equals("uae") || name.contains("abu dhabi")) return "abu-dhabi";
+        if (name.contains("barcelona"))
+            return "barcelona-catalunya";
+        if (country.equals("saudi arabia"))
+            return "saudi-arabia";
+        if (country.equals("united states") || country.equals("usa"))
+            return "usa";
+        if (country.equals("great britain"))
+            return "great-britain";
+        if (country.equals("uae") || name.contains("abu dhabi"))
+            return "abu-dhabi";
 
         return country.replace(" ", "-");
     }
@@ -118,6 +124,7 @@ public class ScrapedRaceResultService {
                 parseAndSaveRow(row, race, season);
             }
             logger.info("Saved results for {}", race.getName());
+
         } catch (IOException e) {
             logger.error("Could not scrape results: {}", resultUrl);
         }
@@ -125,7 +132,8 @@ public class ScrapedRaceResultService {
 
     private void parseAndSaveRow(Element row, Race race, Season season) {
         Elements cells = row.select("td");
-        if (cells.size() < 7) return;
+        if (cells.size() < 7)
+            return;
 
         String driverCode = cells.get(2).select("span.uppercase").last() != null
                 ? cells.get(2).select("span.uppercase").last().text().trim()
@@ -140,21 +148,32 @@ public class ScrapedRaceResultService {
         res.setDriver(driver);
         res.setRace(race);
         res.setSeason(season);
-        
-        try { res.setPoints(new BigDecimal(cells.get(6).text().trim())); } catch (Exception e) { res.setPoints(BigDecimal.ZERO); }
-        try { res.setLapsCompleted(Integer.parseInt(cells.get(4).text().trim())); } catch (Exception e) {}
-        
+
+        try {
+            res.setPoints(new BigDecimal(cells.get(6).text().trim()));
+        } catch (Exception e) {
+            res.setPoints(BigDecimal.ZERO);
+        }
+        try {
+            res.setLapsCompleted(Integer.parseInt(cells.get(4).text().trim()));
+        } catch (Exception e) {
+        }
+
         res.setStatus(deriveStatus(cells.get(0).text().trim(), cells.get(5).text().trim()));
         res.setCreated_at(Timestamp.from(Instant.now()));
         res.setUpdated_at(Timestamp.from(Instant.now()));
 
         driverRaceResultRepository.save(res);
+
     }
 
     private String deriveStatus(String pos, String time) {
-        if (!pos.equalsIgnoreCase("NC")) return "Finished";
-        if (time.equalsIgnoreCase("DSQ")) return "DSQ";
-        if (time.equalsIgnoreCase("DNS")) return "DNS";
+        if (!pos.equalsIgnoreCase("NC"))
+            return "Finished";
+        if (time.equalsIgnoreCase("DSQ"))
+            return "DSQ";
+        if (time.equalsIgnoreCase("DNS"))
+            return "DNS";
         return "DNF";
     }
 }

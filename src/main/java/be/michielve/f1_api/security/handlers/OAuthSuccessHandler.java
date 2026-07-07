@@ -5,7 +5,6 @@ import be.michielve.f1_api.security.CustomUserPrincipal;
 import be.michielve.f1_api.services.AuthService;
 import be.michielve.f1_api.services.JwtService;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +49,7 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
 
             String cookieReturnUrl = httpCookieOAuth2AuthorizationRequestRepository
                     .getCookie(request, HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME)
-                    .map(Cookie::getValue)
+                    .map(cookie -> cookie.getValue())
                     .orElse("/");
 
             final String finalReturnUrl = (cookieReturnUrl.matches("^/[^/].*") || cookieReturnUrl.equals("/"))
