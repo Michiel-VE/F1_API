@@ -1,6 +1,7 @@
-FROM public.ecr.aws/lambda/java:21
+FROM public.ecr.aws/lambda/provided:al2023
 
-COPY build/libs/dependency/* ${LAMBDA_TASK_ROOT}/lib/
-COPY build/libs/f1_api.jar ${LAMBDA_TASK_ROOT}/lib/
+COPY build/native/nativeCompile/f1_api ${LAMBDA_TASK_ROOT}/bootstrap
 
-CMD ["be.michielve.f1_api.lambdas.LambdaHandler::handleRequest"]
+RUN chmod +x ${LAMBDA_TASK_ROOT}/bootstrap
+
+CMD ["handler"]
