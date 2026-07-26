@@ -6,7 +6,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 /src/main/resources/environments
-/infra
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfvars
 /bin
 
 ### STS ###
