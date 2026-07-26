@@ -65,6 +65,10 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+      
       - name: Terraform Apply
         working-directory: infra
         env:
