@@ -28,6 +28,10 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Native Executable
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/dummy
+          SPRING_DATASOURCE_USERNAME: dummy
+          SPRING_DATASOURCE_PASSWORD: dummy
         run: ./gradlew nativeCompile
 
       - name: Configure AWS Credentials
