@@ -16,34 +16,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up GraalVM Java 21
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm'
-          components: 'native-image'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Grant execute permission for Gradle
-        run: chmod +x gradlew
-
-      - name: Build Native Executable
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/dummy
-          SPRING_DATASOURCE_USERNAME: dummy
-          SPRING_DATASOURCE_PASSWORD: dummy
-        run: ./gradlew nativeCompile
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -62,13 +34,13 @@ jobs:
           IMAGE_TAG: v${{ github.run_number }}
         run: |
           FULL_URI="$REGISTRY/$REPOSITORY:$IMAGE_TAG"
-          
+
           echo "==> Building Docker image..."
           docker build --platform linux/amd64 --provenance=false -t $FULL_URI .
-          
+
           echo "==> Pushing image to ECR..."
           docker push $FULL_URI
-          
+
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "FULL_URI=$FULL_URI" >> $GITHUB_ENV
 
