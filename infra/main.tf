@@ -51,3 +51,13 @@ module "api_gateway" {
   lambda_alias_arn        = module.lambdas.lambda_alias_arn
   lambda_alias_invoke_arn = module.lambdas.lambda_alias_invoke_arn
 }
+
+terraform {
+  backend "s3" {
+    bucket         = "f1-api-tfstate"
+    key            = "f1-api/terraform.tfstate"
+    region         = "eu-north-1"
+    dynamodb_table = "f1-api-tf-lock"
+    encrypt        = true
+  }
+}
