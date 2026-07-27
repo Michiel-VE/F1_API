@@ -7,6 +7,7 @@ ENV SPRING_DATASOURCE_USERNAME=dummy
 ENV SPRING_DATASOURCE_PASSWORD=dummy
 
 COPY gradlew settings.gradle build.gradle ./
+RUN chmod +x gradlew
 COPY gradle gradle
 COPY src src
 
