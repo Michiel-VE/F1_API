@@ -1,5 +1,5 @@
 # Stage 1: Build native image inside GraalVM 21 container
-FROM ghcr.io/graalvm/graalvm-community:21 AS builder
+FROM ghcr.io/graalvm/graalvm-community:25 AS builder
 WORKDIR /build
 
 ENV SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/dummy
