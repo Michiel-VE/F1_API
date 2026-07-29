@@ -1,9 +1,11 @@
-variable "db_secret_name_prefix" {
-  description = "Prefix for the Secrets Manager secret name"
+# Secret Configuration
+variable "secret_name" {
+  description = "Name of the consolidated application secret in AWS Secrets Manager"
   type        = string
-  default     = "db_credentials"
+  default     = "f1-api/secrets"
 }
 
+# Database Credentials
 variable "db_username" {
   description = "Database username"
   type        = string
@@ -21,25 +23,7 @@ variable "db_url" {
   type        = string
 }
 
-variable "aws_region" {
-  description = "AWS region to deploy resources in"
-  type        = string
-  default     = "eu-north-1"
-}
-
-variable "env" {
-  description = "Deployment environment (e.g. prod, dev)"
-  type        = string
-  default     = "prod"
-}
-
-# Google OAuth Secrets
-variable "google_secret_name_prefix" {
-  description = "Prefix for the Google OAuth Secrets Manager secret name"
-  type        = string
-  default     = "google_oauth_credentials"
-}
-
+# Google OAuth & Security
 variable "google_client" {
   description = "Google OAuth Client ID"
   type        = string
@@ -58,22 +42,7 @@ variable "jwt_secret_key" {
   sensitive   = true
 }
 
-variable "aws_account_id" {
-  description = "Your 12-digit AWS account ID (find it in the AWS Console top-right menu)"
-  type        = string
-}
-
-variable "image_tag" {
-  description = "Set automatically by deploy.ps1"
-  type        = string
-}
-
-variable "upstash_secret_name_prefix" {
-  description = "Prefix for the Upstash Redis Secrets Manager secret name"
-  type        = string
-  default     = "f1-api/upstash"
-}
-
+# Upstash Redis Credentials
 variable "upstash_redis_token" {
   description = "Upstash Redis REST Token"
   type        = string
@@ -83,4 +52,22 @@ variable "upstash_redis_token" {
 variable "upstash_redis_url" {
   description = "Upstash Redis REST URL"
   type        = string
+}
+
+# AWS & Environment Settings
+variable "aws_region" {
+  description = "AWS region to deploy resources in"
+  type        = string
+  default     = "eu-north-1"
+}
+
+variable "aws_account_id" {
+  description = "Your 12-digit AWS account ID (find it in the AWS Console top-right menu)"
+  type        = string
+}
+
+variable "env" {
+  description = "Deployment environment (e.g. prod, dev)"
+  type        = string
+  default     = "prod"
 }

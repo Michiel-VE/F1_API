@@ -1,11 +1,7 @@
-variable "db_secret_name_prefix" {
-  description = "Prefix for the DB Secrets Manager secret name"
+variable "secret_name" {
+  description = "Name for the application secret in AWS Secrets Manager"
   type        = string
-}
-
-variable "google_secret_name_prefix" {
-  description = "Prefix for the Google OAuth Secrets Manager secret name"
-  type        = string
+  default     = "f1-api/secrets"
 }
 
 variable "db_username" {
@@ -41,12 +37,6 @@ variable "jwt_secret_key" {
   description = "Secret key used to sign JWT tokens"
   type        = string
   sensitive   = true
-}
-
-variable "upstash_secret_name_prefix" {
-  description = "Prefix for the Upstash Redis Secrets Manager secret name"
-  type        = string
-  default     = "f1-api/upstash"
 }
 
 variable "upstash_redis_token" {

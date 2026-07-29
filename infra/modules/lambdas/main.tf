@@ -46,19 +46,17 @@ resource "aws_lambda_function" "f1_lambda" {
 
   environment {
     variables = {
-      ENV                                                          = var.env
-      DB_SECRET_NAME                                               = var.db_secret_name
-      GOOGLE_SECRET_NAME                                           = var.google_secret_name
-      UPSTASH_SECRET_NAME                                          = var.upstash_secret_name
-      JWT_SECRET_KEY                                               = var.jwt_secret_key
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE                            = "true"
-      BASE_URL                                                     = "https://f1-api.michielve.be"
+      ENV                                                             = var.env
+      APP_SECRET_NAME                                                 = var.app_secret_name
+      JWT_SECRET_KEY                                                  = var.jwt_secret_key
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE                               = "true"
+      BASE_URL                                                        = "https://f1-api.michielve.be"
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI = "https://f1-api.michielve.be/login/oauth2/code/google"
-      FRONTEND_URL                                                 = "https://f1.michielve.be"
-      SERVER_FORWARD_HEADERS_STRATEGY                              = "native"
-      SERVER_SESSION_COOKIE_SECURE                                 = "true"
-      SERVER_SESSION_COOKIE_HTTP_ONLY                              = "true"
-      JAVA_TOOL_OPTIONS                                            = "-XX:TieredStopAtLevel=1"
+      FRONTEND_URL                                                    = "https://f1.michielve.be"
+      SERVER_FORWARD_HEADERS_STRATEGY                                 = "native"
+      SERVER_SESSION_COOKIE_SECURE                                    = "true"
+      SERVER_SESSION_COOKIE_HTTP_ONLY                                = "true"
+      JAVA_TOOL_OPTIONS                                               = "-XX:TieredStopAtLevel=1"
     }
   }
 
@@ -112,12 +110,10 @@ resource "aws_lambda_function" "race_scheduler" {
 
   environment {
     variables = {
-      ENV                                 = var.env
-      DB_SECRET_NAME                      = var.db_secret_name
-      GOOGLE_SECRET_NAME                  = var.google_secret_name
-      UPSTASH_SECRET_NAME                 = var.upstash_secret_name
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE   = "true"
-      JAVA_TOOL_OPTIONS                   = "-XX:TieredStopAtLevel=1"
+      ENV                               = var.env
+      APP_SECRET_NAME                   = var.app_secret_name
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE = "true"
+      JAVA_TOOL_OPTIONS                 = "-XX:TieredStopAtLevel=1"
     }
   }
 
@@ -160,12 +156,10 @@ resource "aws_lambda_function" "driver_team_update" {
 
   environment {
     variables = {
-      ENV                                 = var.env
-      DB_SECRET_NAME                      = var.db_secret_name
-      GOOGLE_SECRET_NAME                  = var.google_secret_name
-      UPSTASH_SECRET_NAME                 = var.upstash_secret_name
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE   = "true"
-      JAVA_TOOL_OPTIONS                   = "-XX:TieredStopAtLevel=1"
+      ENV                               = var.env
+      APP_SECRET_NAME                   = var.app_secret_name
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE = "true"
+      JAVA_TOOL_OPTIONS                 = "-XX:TieredStopAtLevel=1"
     }
   }
 
@@ -208,12 +202,10 @@ resource "aws_lambda_function" "standing_scheduler" {
 
   environment {
     variables = {
-      ENV                                 = var.env
-      DB_SECRET_NAME                      = var.db_secret_name
-      GOOGLE_SECRET_NAME                  = var.google_secret_name
-      UPSTASH_SECRET_NAME                 = var.upstash_secret_name
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE   = "true"
-      JAVA_TOOL_OPTIONS                   = "-XX:TieredStopAtLevel=1"
+      ENV                               = var.env
+      APP_SECRET_NAME                   = var.app_secret_name
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE = "true"
+      JAVA_TOOL_OPTIONS                 = "-XX:TieredStopAtLevel=1"
     }
   }
 
@@ -256,12 +248,10 @@ resource "aws_lambda_function" "race_result_scheduler" {
 
   environment {
     variables = {
-      ENV                                 = var.env
-      DB_SECRET_NAME                      = var.db_secret_name
-      GOOGLE_SECRET_NAME                  = var.google_secret_name
-      UPSTASH_SECRET_NAME                 = var.upstash_secret_name
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE   = "true"
-      JAVA_TOOL_OPTIONS                   = "-XX:TieredStopAtLevel=1"
+      ENV                               = var.env
+      APP_SECRET_NAME                   = var.app_secret_name
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE = "true"
+      JAVA_TOOL_OPTIONS                 = "-XX:TieredStopAtLevel=1"
     }
   }
 

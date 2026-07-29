@@ -1,23 +1,9 @@
-output "db_secret_arn" {
-  value = aws_secretsmanager_secret.db_credentials.arn
+output "secret_arn" {
+  description = "ARN of the combined application secrets"
+  value       = aws_secretsmanager_secret.app_secrets.arn
 }
 
-output "db_secret_name" {
-  value = aws_secretsmanager_secret.db_credentials.name
-}
-
-output "google_secret_arn" {
-  value = aws_secretsmanager_secret.google_oauth_credentials.arn
-}
-
-output "google_secret_name" {
-  value = aws_secretsmanager_secret.google_oauth_credentials.name
-}
-
-output "upstash_secret_arn" {
-  value = aws_secretsmanager_secret.upstash_credentials.arn
-}
-
-output "upstash_secret_name" {
-  value = aws_secretsmanager_secret.upstash_credentials.name
+output "secret_name" {
+  description = "Name of the combined application secrets"
+  value       = aws_secretsmanager_secret.app_secrets.name
 }

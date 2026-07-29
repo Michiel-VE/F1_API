@@ -25,11 +25,7 @@ resource "aws_iam_policy" "lambda_secret_access" {
     Statement = [{
       Effect   = "Allow",
       Action   = ["secretsmanager:GetSecretValue"],
-      Resource = [
-        var.db_secret_arn,
-        var.google_secret_arn,
-        var.upstash_secret_arn
-      ]
+      Resource = var.secret_arn
     }]
   })
 }

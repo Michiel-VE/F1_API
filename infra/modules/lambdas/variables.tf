@@ -13,13 +13,8 @@ variable "env" {
   type        = string
 }
 
-variable "db_secret_name" {
-  description = "Name of the Secrets Manager secret containing DB credentials"
-  type        = string
-}
-
-variable "google_secret_name" {
-  description = "Name of the Secrets Manager secret containing Google OAuth credentials"
+variable "app_secret_name" {
+  description = "Name of the consolidated secret in AWS Secrets Manager"
   type        = string
 }
 
@@ -27,9 +22,4 @@ variable "jwt_secret_key" {
   description = "Secret key used to sign JWT tokens"
   type        = string
   sensitive   = true
-}
-
-variable "upstash_secret_name" {
-  description = "Name of the Secrets Manager secret containing Upstash Redis credentials"
-  type        = string
 }

@@ -1,14 +1,16 @@
 output "lambda_function_name" {
-  value = module.lambdas.lambda_alias_arn
+  value       = module.lambdas.lambda_alias_arn
   description = "ARN of the main Lambda alias"
 }
 
-output "db_secret_arn" {
-  value = module.secrets.db_secret_arn
+output "secret_arn" {
+  description = "ARN of the combined application secret"
+  value       = module.secrets.secret_arn
 }
 
-output "db_secret_name" {
-  value = module.secrets.db_secret_name
+output "secret_name" {
+  description = "Name of the combined application secret"
+  value       = module.secrets.secret_name
 }
 
 output "api_url" {

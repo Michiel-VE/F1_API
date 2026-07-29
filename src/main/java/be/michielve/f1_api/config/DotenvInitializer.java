@@ -60,48 +60,45 @@ public class DotenvInitializer {
     }
 
     private static void loadFromSecretsManager() {
-        String dbSecretName = System.getenv("DB_SECRET_NAME");
-        String googleSecretName = System.getenv("GOOGLE_SECRET_NAME");
-        String upstashSecretName = System.getenv("UPSTASH_SECRET_NAME");
+        // Reads from single environment variable (e.g. APP_SECRET_NAME="f1-api/secrets")
+        String appSecretName = System.getenv("APP_SECRET_NAME");
 
-        if (dbSecretName == null || googleSecretName == null || upstashSecretName == null) {
-            throw new RuntimeException(
-                    "Missing Secret Name environment variables (DB_SECRET_NAME, GOOGLE_SECRET_NAME, or UPSTASH_SECRET_NAME)");
+        if (appSecretName == null || appSecretName.isBlank()) {
+            throw new RuntimeException("Missing APP_SECRET_NAME environment variable.");
         }
 
         try (SecretsManagerClient client = SecretsManagerClient.builder().region(Region.EU_NORTH_1).build()) {
 
-            // Disable Flyway AutoConfiguration completely to prevent Flyway from parsing database URLs
-            System.setProperty("spring.autoconfigure.exclude", "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration");
+            JSONObject secretsJson = fetchSecret(client, appSecretName);
 
-            // 1. Database
-            JSONObject dbJson = fetchSecret(client, dbSecretName);
-            String dbUrl = dbJson.getString("url");
+            // 1. Database Configuration
+            String dbUrl = secretsJson.getString("url");
             if (!dbUrl.startsWith("jdbc:")) {
                 dbUrl = "jdbc:" + dbUrl;
             }
+
             System.setProperty("spring.datasource.url", dbUrl);
-            System.setProperty("spring.datasource.username", dbJson.getString("username"));
-            System.setProperty("spring.datasource.password", dbJson.getString("password"));
+            System.setProperty("spring.datasource.jdbc-url", dbUrl); // Explicit fallback for Hikari
+            System.setProperty("spring.flyway.url", dbUrl);           // Ensures Flyway receives valid JDBC prefix
+            System.setProperty("spring.datasource.username", secretsJson.getString("db_username"));
+            System.setProperty("spring.datasource.password", secretsJson.getString("db_password"));
 
-            // 2. Google & JWT
-            JSONObject googleJson = fetchSecret(client, googleSecretName);
+            // 2. Google OAuth & JWT Configuration
             System.setProperty("spring.security.oauth2.client.registration.google.client-id",
-                    googleJson.getString("google_client_id"));
+                    secretsJson.getString("google_client_id"));
             System.setProperty("spring.security.oauth2.client.registration.google.client-secret",
-                    googleJson.getString("google_client_secret"));
-            System.setProperty("jwt.secret.key", googleJson.getString("jwt_secret_key"));
+                    secretsJson.getString("google_client_secret"));
+            System.setProperty("jwt.secret.key", secretsJson.getString("jwt_secret_key"));
 
-            // 3. Upstash Redis
-            JSONObject upstashJson = fetchSecret(client, upstashSecretName);
-            String token = upstashJson.getString("upstash_redis_token");
-            String endpoint = upstashJson.getString("upstash_redis_url").replace("https://", "");
+            // 3. Upstash Redis Configuration
+            String token = secretsJson.getString("upstash_redis_token");
+            String endpoint = secretsJson.getString("upstash_redis_url").replace("https://", "");
             
             // Format required by Spring Data Redis: rediss://default:token@endpoint:port
             String redisUrl = String.format("rediss://default:%s@%s:%s", token, endpoint, "6379");
             System.setProperty("spring.data.redis.url", redisUrl);
 
-            logger.info("All secrets loaded and Spring properties mapped successfully.");
+            logger.info("All secrets loaded from single AWS Secret ({}) and Spring properties mapped successfully.", appSecretName);
         } catch (Exception e) {
             logger.error("Failed to load secrets: {}", e.getMessage(), e);
             throw new RuntimeException("Unable to load secrets from AWS", e);
