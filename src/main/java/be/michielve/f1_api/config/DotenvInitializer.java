@@ -71,12 +71,18 @@ public class DotenvInitializer {
 
         try (SecretsManagerClient client = SecretsManagerClient.builder().region(Region.EU_NORTH_1).build()) {
 
+            // Disable Flyway AutoConfiguration completely to prevent Flyway from parsing database URLs
+            System.setProperty("spring.autoconfigure.exclude", "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration");
+
             // 1. Database
             JSONObject dbJson = fetchSecret(client, dbSecretName);
-            System.setProperty("spring.datasource.url", dbJson.getString("url"));
+            String dbUrl = dbJson.getString("url");
+            if (!dbUrl.startsWith("jdbc:")) {
+                dbUrl = "jdbc:" + dbUrl;
+            }
+            System.setProperty("spring.datasource.url", dbUrl);
             System.setProperty("spring.datasource.username", dbJson.getString("username"));
             System.setProperty("spring.datasource.password", dbJson.getString("password"));
-            System.setProperty("spring.flyway.enabled", "false");
 
             // 2. Google & JWT
             JSONObject googleJson = fetchSecret(client, googleSecretName);
