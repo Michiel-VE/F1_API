@@ -10,7 +10,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = "be.michielve.f1_api.repositories")
 @EntityScan(basePackages = "be.michielve.f1_api.models")
-@RegisterReflectionForBinding(org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension.class)
+@RegisterReflectionForBinding({
+    org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension.class,
+    org.flywaydb.database.postgresql.TransactionalModel.class
+})
 public class F1ApiApplication {
 
     static {
