@@ -1,28 +1,31 @@
 package be.michielve.f1_api;
 
-import be.michielve.f1_api.config.DotenvInitializer;
-import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
+import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
+import org.springframework.aot.hint.MemberCategory;
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.persistence.autoconfigure.EntityScan;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "be.michielve.f1_api.repositories")
-@EntityScan(basePackages = "be.michielve.f1_api.models")
-@RegisterReflectionForBinding({
-    org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension.class,
-    org.flywaydb.database.postgresql.TransactionalModel.class
-})
+@ImportRuntimeHints(F1ApiApplication.FlywayReflectionHints.class)
 public class F1ApiApplication {
 
-    static {
-        DotenvInitializer.init();
+    public static void main(String[] args) {
+        SpringApplication.run(F1ApiApplication.class, args);
     }
 
-    public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(F1ApiApplication.class);
-        app.setDefaultProperties(System.getProperties());
-        app.run(args);
+    static class FlywayReflectionHints implements RuntimeHintsRegistrar {
+        @Override
+        public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+            hints.reflection().registerType(
+                PostgreSQLConfigurationExtension.class,
+                MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                MemberCategory.DECLARED_FIELDS,
+                MemberCategory.PUBLIC_FIELDS
+            );
+        }
     }
 }
