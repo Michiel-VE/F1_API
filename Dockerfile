@@ -2,6 +2,9 @@
 FROM ghcr.io/graalvm/native-image-community:21 AS builder
 WORKDIR /build
 
+# Install findutils to provide xargs required by gradlew
+RUN microdnf install -y findutils && microdnf clean all
+
 ENV ENV=build
 ENV SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/dummy
 ENV SPRING_DATASOURCE_USERNAME=dummy
