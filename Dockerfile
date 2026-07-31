@@ -11,7 +11,7 @@ RUN chmod +x gradlew
 COPY gradle gradle
 COPY src src
 
-RUN ./gradlew nativeCompile -Pgradle.experimental.configuration-cache=false --no-daemon
+RUN ./gradlew nativeCompile --stacktrace --no-daemon
 
 # Stage 2: AWS Lambda Runtime
 FROM public.ecr.aws/lambda/provided:al2023

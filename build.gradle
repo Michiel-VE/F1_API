@@ -111,7 +111,6 @@ graalvmNative {
         main {
             buildArgs.add('--initialize-at-build-time=ch.qos.logback,org.slf4j,org.flywaydb.core.internal')
             buildArgs.add('--initialize-at-run-time=io.netty.handler.ssl.JdkSslServerContext,io.netty.handler.ssl.BouncyCastleAlpnSslUtils')
-            buildArgs.add('-H:+UnlockExperimentalVMOptions')
         }
     }
     metadataRepository {
