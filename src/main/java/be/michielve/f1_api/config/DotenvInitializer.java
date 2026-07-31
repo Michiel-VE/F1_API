@@ -26,6 +26,11 @@ public class DotenvInitializer {
 
             System.setProperty("spring.main.web-application-type", "servlet");
 
+            // Disable Flyway execution during GraalVM native image build time
+            if (isNativeImageBuildTime()) {
+                System.setProperty("spring.flyway.enabled", "false");
+            }
+
             String env = System.getenv("ENV");
 
             if ("prod".equalsIgnoreCase(env)) {
@@ -38,6 +43,11 @@ public class DotenvInitializer {
         }
     }
 
+    private static boolean isNativeImageBuildTime() {
+        return "true".equals(System.getProperty("org.graalvm.nativeimage.imagecode"))
+            || System.getenv("GITHUB_ACTIONS") != null;
+    }
+
     private static void loadFromDotenv() {
         logger.info("Loading local environment variables...");
         Dotenv dotenv = Dotenv.configure()
@@ -47,6 +57,14 @@ public class DotenvInitializer {
                 .load();
 
         dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+
+        // Safe fallback for Flyway/DataSource in CI if variables are missing
+        if (System.getProperty("spring.datasource.url") == null) {
+            System.setProperty("spring.datasource.url", "jdbc:postgresql://localhost:5432/dummy");
+            System.setProperty("spring.datasource.username", "postgres");
+            System.setProperty("spring.datasource.password", "postgres");
+            System.setProperty("spring.flyway.enabled", "false");
+        }
 
         // Ensure Redis URL is formatted correctly for local if it exists in local.env
         String rawRedisUrl = System.getProperty("UPSTASH_REDIS_URL");
@@ -60,7 +78,6 @@ public class DotenvInitializer {
     }
 
     private static void loadFromSecretsManager() {
-        // Reads from single environment variable (e.g. APP_SECRET_NAME="f1-api/secrets")
         String appSecretName = System.getenv("APP_SECRET_NAME");
 
         if (appSecretName == null || appSecretName.isBlank()) {
@@ -78,8 +95,8 @@ public class DotenvInitializer {
             }
 
             System.setProperty("spring.datasource.url", dbUrl);
-            System.setProperty("spring.datasource.jdbc-url", dbUrl); // Explicit fallback for Hikari
-            System.setProperty("spring.flyway.url", dbUrl);           // Ensures Flyway receives valid JDBC prefix
+            System.setProperty("spring.datasource.jdbc-url", dbUrl);
+            System.setProperty("spring.flyway.url", dbUrl);
             System.setProperty("spring.datasource.username", secretsJson.getString("db_username"));
             System.setProperty("spring.datasource.password", secretsJson.getString("db_password"));
 
@@ -94,7 +111,6 @@ public class DotenvInitializer {
             String token = secretsJson.getString("upstash_redis_token");
             String endpoint = secretsJson.getString("upstash_redis_url").replace("https://", "");
             
-            // Format required by Spring Data Redis: rediss://default:token@endpoint:port
             String redisUrl = String.format("rediss://default:%s@%s:%s", token, endpoint, "6379");
             System.setProperty("spring.data.redis.url", redisUrl);
 

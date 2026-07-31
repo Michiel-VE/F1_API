@@ -1,7 +1,8 @@
-# Stage 1: Build native image inside GraalVM 25 container
-FROM ghcr.io/graalvm/graalvm-community:25 AS builder
+# Stage 1: Build native image inside GraalVM JDK 21 container
+FROM ghcr.io/graalvm/native-image-community:21 AS builder
 WORKDIR /build
 
+ENV ENV=build
 ENV SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/dummy
 ENV SPRING_DATASOURCE_USERNAME=dummy
 ENV SPRING_DATASOURCE_PASSWORD=dummy
