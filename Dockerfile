@@ -1,4 +1,4 @@
-# Stage 1: Build native image inside GraalVM 21 container
+# Stage 1: Build native image inside GraalVM 25 container
 FROM ghcr.io/graalvm/graalvm-community:25 AS builder
 WORKDIR /build
 
@@ -11,7 +11,7 @@ RUN chmod +x gradlew
 COPY gradle gradle
 COPY src src
 
-RUN ./gradlew nativeCompile --no-daemon
+RUN ./gradlew nativeCompile -Pgradle.experimental.configuration-cache=false --no-daemon
 
 # Stage 2: AWS Lambda Runtime
 FROM public.ecr.aws/lambda/provided:al2023

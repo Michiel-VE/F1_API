@@ -1,0 +1,10 @@
+[
+  {
+    "name": "org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  }
+]
