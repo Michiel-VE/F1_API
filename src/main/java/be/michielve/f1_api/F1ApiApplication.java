@@ -23,8 +23,10 @@ public class F1ApiApplication {
                 PostgreSQLConfigurationExtension.class,
                 MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                 MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-                MemberCategory.DECLARED_FIELDS,
-                MemberCategory.PUBLIC_FIELDS
+                MemberCategory.INVOKE_PUBLIC_METHODS,
+                MemberCategory.INVOKE_DECLARED_METHODS,
+                MemberCategory.ACCESS_PUBLIC_FIELDS,
+                MemberCategory.ACCESS_DECLARED_FIELDS
             );
         }
     }
