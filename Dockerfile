@@ -1,5 +1,5 @@
-# Stage 1: Build native image inside GraalVM JDK 21 container
-FROM ghcr.io/graalvm/native-image-community:21 AS builder
+# Stage 1: Build native image inside GraalVM JDK 25 container
+FROM ghcr.io/graalvm/graalvm-community:25 AS builder
 WORKDIR /build
 
 # Install findutils to provide xargs required by gradlew
