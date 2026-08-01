@@ -19,6 +19,13 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    dependencies {
+        dependency 'org.flywaydb:flyway-core:10.20.1'
+        dependency 'org.flywaydb:flyway-database-postgresql:10.20.1'
+    }
+}
+
 dependencies {
     // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
