@@ -123,7 +123,6 @@ graalvmNative {
                 '--initialize-at-run-time=io.hypersistence.utils',
                 '--initialize-at-run-time=org.apache.commons.lang3.RandomUtils',
                 '-H:IncludeResources=db/migration/.*\\.sql$',
-                "-H:ReflectionConfigurationFiles=${file('src/main/resources/META-INF/native-image/be.michielve/f1_api/reflect-config.json').absolutePath}"
             ])
         }
     }

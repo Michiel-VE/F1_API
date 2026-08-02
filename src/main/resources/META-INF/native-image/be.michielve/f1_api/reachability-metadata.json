@@ -1,0 +1,16 @@
+{
+  "reflection": [
+    {
+      "type": "org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension",
+      "methods": [
+        { "name": "<init>", "parameterTypes": [] },
+        { "name": "getTransactional", "parameterTypes": [] },
+        { "name": "isTransactionalLock", "parameterTypes": [] },
+        { "name": "setTransactional", "parameterTypes": ["org.flywaydb.database.postgresql.TransactionalModel"] },
+        { "name": "setTransactionalLock", "parameterTypes": ["boolean"] }
+      ]
+    },
+    { "type": "org.flywaydb.database.postgresql.TransactionalModel" },
+    { "type": "org.flywaydb.database.postgresql.PostgreSQLDatabaseType" }
+  ]
+}
