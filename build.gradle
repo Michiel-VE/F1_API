@@ -122,11 +122,18 @@ graalvmNative {
                 '--initialize-at-run-time=org.postgresql',
                 '--initialize-at-run-time=io.hypersistence.utils',
                 '--initialize-at-run-time=org.apache.commons.lang3.RandomUtils',
-                '-H:IncludeResources=db/migration/.*\\.sql$',
+                '-H:IncludeResources=db/migration/.*\\.sql$'
             ])
         }
     }
     metadataRepository {
         enabled = true
+        excludedModules.add("org.flywaydb:flyway-database-postgresql")
+    }
+}
+
+tasks.register('inspectMetadataRepo') {
+    doLast {
+        println(graalvmNative.metadataRepository.class.methods*.name.toSet().sort().join('\n'))
     }
 }
