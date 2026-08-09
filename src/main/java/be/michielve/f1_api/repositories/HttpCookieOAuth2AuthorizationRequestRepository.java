@@ -1,5 +1,6 @@
 package be.michielve.f1_api.repositories;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -7,8 +8,6 @@ import org.springframework.security.oauth2.client.web.AuthorizationRequestReposi
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Base64;
 import java.util.Map;
@@ -25,8 +24,8 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
     private final ObjectMapper objectMapper;
 
-    public HttpCookieOAuth2AuthorizationRequestRepository() {
-        this.objectMapper = JsonMapper.builder().build();
+    public HttpCookieOAuth2AuthorizationRequestRepository(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -47,7 +46,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
         boolean isProduction = System.getenv("BASE_URL") != null;
         String secret = serialize(authorizationRequest);
-        
+
         addCookie(response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, secret, COOKIE_EXPIRE_SECONDS, isProduction);
 
         String redirectUriAfterLogin = request.getParameter(REDIRECT_URI_PARAM_COOKIE_NAME);
