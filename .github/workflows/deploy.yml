@@ -67,7 +67,12 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Force Update AWS Lambda Images
+        env:
+          AWS_REGION: eu-north-1
         run: |
+          echo "==> Waiting for any ongoing Terraform updates on f1-api-lambda..."
+          aws lambda wait function-updated --function-name f1-api-lambda
+
           echo "==> Force updating f1-api-lambda..."
           aws lambda update-function-code \
             --function-name f1-api-lambda \

@@ -1,9 +1,9 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '4.0.6'
+    id 'org.springframework.boot' version '3.4.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'maven-publish'
-    id 'org.graalvm.buildtools.native' version '1.1.6'
+    id 'org.graalvm.buildtools.native' version '0.10.4'
 }
 
 group = 'be.michielve'
@@ -28,7 +28,8 @@ dependencyManagement {
 
 dependencies {
     // Spring Boot Starters
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -44,12 +45,6 @@ dependencies {
 
     // Caching
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-
-    // AWS Lambda
-    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.22'
-    implementation 'com.amazonaws:aws-lambda-java-events:3.15.0'
-    implementation 'com.amazonaws.serverless:aws-serverless-java-container-springboot4:3.0.0'
 
     // AWS SDK
     implementation platform('software.amazon.awssdk:bom:2.30.13')
@@ -83,40 +78,15 @@ springBoot {
     mainClass = 'be.michielve.f1_api.F1ApiApplication'
 }
 
-bootJar {
-    enabled = true
-    archiveFileName = 'f1_api-boot.jar'
-}
-
-jar {
-    enabled = true
-    archiveFileName = 'f1_api.jar'
-    manifest {
-        attributes 'Implementation-Title': 'f1_api'
-    }
-}
-
-tasks.register('copyDependencies', Copy) {
-    dependsOn configurations.runtimeClasspath
-    from configurations.runtimeClasspath
-    into layout.buildDirectory.dir('libs/dependency')
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-build.dependsOn copyDependencies
-
 tasks.named('test') {
     systemProperty "wiremock.record", System.getProperty("wiremock.record")
     useJUnitPlatform()
 }
 
-dependencyLocking {
-    lockAllConfigurations()
-}
-
 graalvmNative {
     binaries {
         main {
+            imageName = 'f1_api'
             buildArgs.addAll([
                 '--initialize-at-run-time=org.flywaydb.core',
                 '--initialize-at-run-time=org.postgresql',
@@ -125,15 +95,5 @@ graalvmNative {
                 '-H:IncludeResources=db/migration/.*\\.sql$'
             ])
         }
-    }
-    metadataRepository {
-        enabled = true
-        excludedModules.add("org.flywaydb:flyway-database-postgresql")
-    }
-}
-
-tasks.register('inspectMetadataRepo') {
-    doLast {
-        println(graalvmNative.metadataRepository.class.methods*.name.toSet().sort().join('\n'))
     }
 }

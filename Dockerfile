@@ -1,8 +1,8 @@
-# Stage 1: Build native image inside GraalVM JDK 25 container
-FROM ghcr.io/graalvm/graalvm-community:25 AS builder
+# Stage 1: Build GraalVM Native Executable
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
 WORKDIR /build
 
-# Install findutils to provide xargs required by gradlew
+# Install findutils for gradlew
 RUN microdnf install -y findutils && microdnf clean all
 
 ENV ENV=build
@@ -11,15 +11,30 @@ ENV SPRING_DATASOURCE_USERNAME=dummy
 ENV SPRING_DATASOURCE_PASSWORD=dummy
 
 COPY gradlew settings.gradle build.gradle ./
-RUN chmod +x gradlew
 COPY gradle gradle
+RUN chmod +x gradlew
+
 COPY src src
 
-RUN ./gradlew nativeCompile --stacktrace --no-daemon
+# Compile Native Executable via GraalVM plugin
+RUN ./gradlew nativeCompile --no-daemon -x test
 
-# Stage 2: AWS Lambda Runtime
+# Stage 2: AWS Lambda Execution Image
 FROM public.ecr.aws/lambda/provided:al2023
-COPY --from=builder /build/build/native/nativeCompile/f1_api /var/runtime/bootstrap
-RUN chmod +x /var/runtime/bootstrap
 
-CMD [ "be.michielve.f1_api.lambdas.LambdaHandler::handleRequest" ]
+# Copy AWS Lambda Web Adapter extension to proxy events to port 8080
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.1 /lambda-adapter /opt/extensions/lambda-adapter
+
+WORKDIR /var/task
+
+# Copy compiled native binary and assign it as AWS custom runtime bootstrap
+COPY --from=builder /build/build/native/nativeCompile/f1_api /var/task/bootstrap
+RUN chmod +x /var/task/bootstrap
+
+# Environment settings for Web Adapter readiness checks
+ENV PORT=8080
+ENV AWS_LWA_READINESS_CHECK_PROTOCOL=HTTP
+ENV AWS_LWA_READINESS_CHECK_PATH=/actuator/health
+ENV AWS_LWA_READINESS_CHECK_PORT=8080
+
+CMD ["/var/task/bootstrap"]
