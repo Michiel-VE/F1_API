@@ -66,14 +66,55 @@ jobs:
           TF_VAR_upstash_redis_url: ${{ secrets.TF_VAR_upstash_redis_url }}
         run: terraform apply -auto-approve
 
-      - name: Force Update AWS Lambda Images
+      # All five Lambdas (the main API + the four scraper/updater
+      # functions) share the same container image. Terraform apply
+      # above should already update every one of them since they all
+      # reference the same var.image_uri, but this step force-updates
+      # each explicitly as a belt-and-suspenders guarantee -- so a
+      # partial/failed Terraform update to any single function doesn't
+      # silently leave it on the old image.
+      - name: Force Update All AWS Lambda Images
         env:
           AWS_REGION: eu-north-1
         run: |
-          echo "==> Waiting for any ongoing Terraform updates on f1-api-lambda..."
-          aws lambda wait function-updated --function-name f1-api-lambda
+          FUNCTIONS=(
+            "f1-api-lambda"
+            "f1-api-race-updater"
+            "f1-api-driver-team-updater"
+            "f1-api-standing-updater"
+            "f1-api-race-result-updater"
+          )
 
-          echo "==> Force updating f1-api-lambda..."
-          aws lambda update-function-code \
+          for FN in "${FUNCTIONS[@]}"; do
+            echo "==> Waiting for any ongoing updates on $FN..."
+            aws lambda wait function-updated --function-name "$FN"
+
+            echo "==> Force updating $FN to ${{ env.FULL_URI }}..."
+            aws lambda update-function-code \
+              --function-name "$FN" \
+              --image-uri "${{ env.FULL_URI }}"
+
+            echo "==> Waiting for $FN update to finish..."
+            aws lambda wait function-updated --function-name "$FN"
+          done
+
+      # The main API Lambda is invoked via the "prod" alias, not
+      # $LATEST. update-function-code above only touches $LATEST, so
+      # without this, API Gateway keeps calling the old published
+      # version forever -- publish a new version and move the alias.
+      - name: Publish New Version and Update Alias
+        env:
+          AWS_REGION: eu-north-1
+        run: |
+          NEW_VERSION=$(aws lambda publish-version \
             --function-name f1-api-lambda \
-            --image-uri ${{ env.FULL_URI }}
+            --query 'Version' --output text)
+
+          echo "==> Published version $NEW_VERSION"
+
+          aws lambda update-alias \
+            --function-name f1-api-lambda \
+            --name prod \
+            --function-version "$NEW_VERSION"
+
+          echo "==> prod alias now points to version $NEW_VERSION"
